@@ -1,5 +1,3 @@
-<!-- File: index.html -->
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -32,9 +30,26 @@
       from { opacity: 1; }
       to { opacity: 0; }
     }
+    .progress-bar {
+      transition: width 0.5s ease-in-out;
+    }
   </style>
 </head>
 <body class="bg-gray-100">
+  <!-- Connection Status -->
+  <div id="connectionStatus" class="fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center py-1 hidden">
+    <i class="fas fa-exclamation-triangle mr-2"></i>
+    <span>Anda sedang offline. Beberapa fitur mungkin terbatas.</span>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl flex items-center">
+      <i class="fas fa-spinner fa-spin text-blue-500 text-2xl mr-3"></i>
+      <span class="text-lg">Memuat data...</span>
+    </div>
+  </div>
+
   <!-- Notification -->
   <div id="notification" class="notification fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden"></div>
 
@@ -61,6 +76,7 @@
         <li><a href="#" onclick="showSection('settings')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-cog mr-2"></i> Pengaturan</a></li>
         <li><a href="#" onclick="showSection('libur')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-calendar-alt mr-2"></i> Hari Libur</a></li>
         <li><a href="#" onclick="showSection('manual')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-pen mr-2"></i> Absen Manual</a></li>
+        <li><a href="#" onclick="showSection('logs')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-history mr-2"></i> Log Sistem</a></li>
       </ul>
     </div>
     
@@ -108,19 +124,27 @@
         <div class="bg-white rounded-lg shadow p-6">
           <h3 class="text-lg font-semibold mb-2">Total Siswa</h3>
           <p id="totalSiswa" class="text-3xl font-bold text-blue-600">0</p>
+          <p class="text-sm text-gray-500 mt-1"><span id="activeSiswa">0</span> Aktif</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
           <h3 class="text-lg font-semibold mb-2">Absen Hari Ini</h3>
           <p id="absenHariIni" class="text-3xl font-bold text-green-600">0</p>
+          <p class="text-sm text-gray-500 mt-1"><span id="presentPercentage">0</span>% Kehadiran</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
           <h3 class="text-lg font-semibold mb-2">Terlambat Hari Ini</h3>
           <p id="terlambatHariIni" class="text-3xl font-bold text-red-600">0</p>
+          <p class="text-sm text-gray-500 mt-1"><span id="latePercentage">0</span>% dari absen</p>
         </div>
       </div>
       
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4">Aktivitas Terakhir</h3>
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Aktivitas Terakhir</h3>
+          <button onclick="loadDashboardData()" class="text-blue-600 hover:text-blue-800">
+            <i class="fas fa-sync-alt mr-1"></i> Refresh
+          </button>
+        </div>
         <div class="overflow-x-auto">
           <table class="min-w-full bg-white">
             <thead>
@@ -144,12 +168,37 @@
     <div id="siswaSection" class="section hidden">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold">Data Siswa</h2>
-        <button onclick="showAddSiswaModal()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
-          <i class="fas fa-plus mr-2"></i> Tambah Siswa
-        </button>
+        <div class="flex space-x-2">
+          <button onclick="showAddSiswaModal()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-plus mr-2"></i> Tambah
+          </button>
+          <button onclick="loadSiswaData()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-sync-alt mr-2"></i> Refresh
+          </button>
+        </div>
       </div>
       
       <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-4 border-b">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div class="mb-2 md:mb-0">
+              <label for="siswaFilter" class="block text-gray-700 mb-1">Filter:</label>
+              <select id="siswaFilter" onchange="filterSiswaTable()" class="px-3 py-1 border rounded-lg">
+                <option value="all">Semua</option>
+                <option value="active">Aktif</option>
+                <option value="inactive">Non-Aktif</option>
+              </select>
+            </div>
+            <div class="flex items-center">
+              <input type="text" id="siswaSearch" placeholder="Cari..." 
+                class="px-3 py-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onkeyup="searchSiswa()">
+              <button class="ml-2 text-gray-500 hover:text-gray-700">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
         <div class="overflow-x-auto">
           <table class="min-w-full">
             <thead class="bg-gray-100">
@@ -158,6 +207,7 @@
                 <th class="py-3 px-4 text-left">Nama</th>
                 <th class="py-3 px-4 text-left">Kelas</th>
                 <th class="py-3 px-4 text-left">RFID</th>
+                <th class="py-3 px-4 text-left">Status</th>
                 <th class="py-3 px-4 text-left">Aksi</th>
               </tr>
             </thead>
@@ -165,6 +215,18 @@
               <!-- Data akan diisi oleh JavaScript -->
             </tbody>
           </table>
+        </div>
+        <div class="p-4 border-t flex justify-between items-center">
+          <div id="siswaTableInfo" class="text-sm text-gray-600"></div>
+          <div class="flex space-x-2">
+            <button id="prevPageBtn" onclick="prevPage()" class="px-3 py-1 border rounded-lg disabled:opacity-50" disabled>
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="pageInfo" class="px-3 py-1">1/1</span>
+            <button id="nextPageBtn" onclick="nextPage()" class="px-3 py-1 border rounded-lg disabled:opacity-50" disabled>
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -177,11 +239,30 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
           <h3 class="text-lg font-semibold mb-2 md:mb-0">Filter Data</h3>
           <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
-            <input type="date" id="filterDate" class="px-3 py-2 border rounded-lg">
-            <button onclick="loadAbsenData()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+            <div>
+              <label for="filterDate" class="block text-gray-700 mb-1 text-sm">Tanggal</label>
+              <input type="date" id="filterDate" class="px-3 py-2 border rounded-lg">
+            </div>
+            <div>
+              <label for="filterKelas" class="block text-gray-700 mb-1 text-sm">Kelas</label>
+              <select id="filterKelas" class="px-3 py-2 border rounded-lg">
+                <option value="">Semua Kelas</option>
+                <!-- Diisi oleh JavaScript -->
+              </select>
+            </div>
+            <div>
+              <label for="filterStatus" class="block text-gray-700 mb-1 text-sm">Status</label>
+              <select id="filterStatus" class="px-3 py-2 border rounded-lg">
+                <option value="">Semua Status</option>
+                <option value="Tepat Waktu">Tepat Waktu</option>
+                <option value="Terlambat">Terlambat</option>
+                <option value="Awal">Awal</option>
+              </select>
+            </div>
+            <button onclick="loadAbsenData()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg mt-auto">
               <i class="fas fa-filter mr-2"></i> Filter
             </button>
-            <button onclick="resetFilter()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg">
+            <button onclick="resetFilter()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg mt-auto">
               <i class="fas fa-sync-alt mr-2"></i> Reset
             </button>
           </div>
@@ -204,6 +285,12 @@
             </tbody>
           </table>
         </div>
+        <div class="mt-4 flex justify-between items-center">
+          <div id="absenTableInfo" class="text-sm text-gray-600"></div>
+          <button onclick="exportAbsenData()" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-file-export mr-2"></i> Export
+          </button>
+        </div>
       </div>
     </div>
 
@@ -224,7 +311,16 @@
               
               <div class="mb-4">
                 <label for="batasTerlambat" class="block text-gray-700 mb-2">Batas Terlambat (menit)</label>
-                <input type="number" id="batasTerlambat" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <input type="number" id="batasTerlambat" min="1" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              </div>
+
+              <div class="mb-4">
+                <label for="modeAbsen" class="block text-gray-700 mb-2">Mode Absen</label>
+                <select id="modeAbsen" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="normal">Normal</option>
+                  <option value="strict">Ketat</option>
+                  <option value="flexible">Fleksibel</option>
+                </select>
               </div>
             </div>
             
@@ -244,13 +340,22 @@
               <div class="mb-4">
                 <label for="logoUrl" class="block text-gray-700 mb-2">URL Logo</label>
                 <input type="url" id="logoUrl" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="mt-2 flex items-center">
+                  <img id="logoPreview" src="" alt="Logo Preview" class="w-10 h-10 rounded-full mr-2 hidden">
+                  <button type="button" onclick="testLogoUrl()" class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">
+                    Test URL
+                  </button>
+                </div>
               </div>
             </div>
           </div>
           
-          <div class="mt-6">
+          <div class="mt-6 flex justify-end space-x-3">
+            <button type="button" onclick="resetSettingsForm()" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">
+              <i class="fas fa-undo mr-2"></i> Reset
+            </button>
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">
-              <i class="fas fa-save mr-2"></i> Simpan Pengaturan
+              <i class="fas fa-save mr-2"></i> Simpan
             </button>
           </div>
         </form>
@@ -261,9 +366,14 @@
     <div id="liburSection" class="section hidden">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold">Hari Libur</h2>
-        <button onclick="showAddLiburModal()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
-          <i class="fas fa-plus mr-2"></i> Tambah Hari Libur
-        </button>
+        <div class="flex space-x-2">
+          <button onclick="showAddLiburModal()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-plus mr-2"></i> Tambah
+          </button>
+          <button onclick="loadLiburData()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-sync-alt mr-2"></i> Refresh
+          </button>
+        </div>
       </div>
       
       <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -298,7 +408,25 @@
             </select>
           </div>
           
-          <div class="flex justify-end">
+          <div class="mb-4">
+            <label for="manualStatus" class="block text-gray-700 mb-2">Status Absen</label>
+            <select id="manualStatus" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="auto">Otomatis (sesuai waktu)</option>
+              <option value="Tepat Waktu">Tepat Waktu</option>
+              <option value="Terlambat">Terlambat</option>
+              <option value="Awal">Awal</option>
+            </select>
+          </div>
+          
+          <div class="mb-4">
+            <label for="manualWaktu" class="block text-gray-700 mb-2">Waktu Absen</label>
+            <input type="datetime-local" id="manualWaktu" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div class="flex justify-end space-x-3">
+            <button type="reset" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">
+              Batal
+            </button>
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">
               <i class="fas fa-check mr-2"></i> Catat Absen
             </button>
@@ -317,11 +445,15 @@
             <div class="text-center mb-6">
               <div class="text-5xl font-bold mb-2" id="currentTime"></div>
               <div class="text-xl" id="currentDate"></div>
+              <div id="liburInfo" class="text-red-600 font-semibold mt-2 hidden">
+                <i class="fas fa-calendar-times mr-2"></i> Hari ini adalah hari libur
+              </div>
             </div>
             
             <div class="mb-6">
               <label class="block text-gray-700 mb-2">Scan RFID</label>
               <input type="text" id="rfidInput" class="w-full px-3 py-4 text-center text-xl border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tempelkan Kartu RFID" autofocus>
+              <p class="text-sm text-gray-500 mt-1">Tekan Enter setelah scan</p>
             </div>
             
             <div class="bg-gray-100 rounded-lg p-4">
@@ -335,7 +467,12 @@
         
         <div class="md:w-1/3">
           <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-xl font-bold mb-4">Info Absen Hari Ini</h3>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold">Info Absen Hari Ini</h3>
+              <button onclick="loadLiveAbsenData()" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
             
             <div class="space-y-4">
               <div>
@@ -344,8 +481,9 @@
                   <span class="font-bold" id="todayAbsenCount">0</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2.5">
-                  <div id="todayAbsenBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                  <div id="todayAbsenBar" class="bg-blue-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                 </div>
+                <div class="text-xs text-gray-500 mt-1 text-right" id="todayAbsenPercentage">0%</div>
               </div>
               
               <div>
@@ -354,8 +492,9 @@
                   <span class="font-bold text-green-600" id="todayOnTimeCount">0</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2.5">
-                  <div id="todayOnTimeBar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                  <div id="todayOnTimeBar" class="bg-green-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                 </div>
+                <div class="text-xs text-gray-500 mt-1 text-right" id="todayOnTimePercentage">0%</div>
               </div>
               
               <div>
@@ -364,17 +503,98 @@
                   <span class="font-bold text-red-600" id="todayLateCount">0</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2.5">
-                  <div id="todayLateBar" class="bg-red-600 h-2.5 rounded-full" style="width: 0%"></div>
+                  <div id="todayLateBar" class="bg-red-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
                 </div>
+                <div class="text-xs text-gray-500 mt-1 text-right" id="todayLatePercentage">0%</div>
               </div>
             </div>
             
             <div class="mt-6">
-              <h4 class="font-semibold mb-2">Aktivitas Terakhir</h4>
+              <div class="flex justify-between items-center mb-2">
+                <h4 class="font-semibold">Aktivitas Terakhir</h4>
+                <button onclick="loadLiveAbsenData()" class="text-sm text-blue-600 hover:text-blue-800">
+                  Lihat Semua
+                </button>
+              </div>
               <div class="space-y-2" id="lastActivities">
                 <!-- Data akan diisi oleh JavaScript -->
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Sistem Section -->
+    <div id="logsSection" class="section hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Log Sistem</h2>
+        <div class="flex space-x-2">
+          <button onclick="loadLogsData()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-sync-alt mr-2"></i> Refresh
+          </button>
+          <button onclick="clearLogs()" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg">
+            <i class="fas fa-trash-alt mr-2"></i> Clear Logs
+          </button>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-4 border-b">
+          <div class="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
+            <div>
+              <label for="logActionFilter" class="block text-gray-700 mb-1 text-sm">Action:</label>
+              <select id="logActionFilter" class="px-3 py-1 border rounded-lg">
+                <option value="">Semua</option>
+                <option value="login">Login</option>
+                <option value="scan_rfid">Scan RFID</option>
+                <option value="update_settings">Update Settings</option>
+                <!-- Diisi oleh JavaScript -->
+              </select>
+            </div>
+            <div>
+              <label for="logStatusFilter" class="block text-gray-700 mb-1 text-sm">Status:</label>
+              <select id="logStatusFilter" class="px-3 py-1 border rounded-lg">
+                <option value="">Semua</option>
+                <option value="Success">Success</option>
+                <option value="Error">Error</option>
+              </select>
+            </div>
+            <div>
+              <label for="logDateFilter" class="block text-gray-700 mb-1 text-sm">Tanggal:</label>
+              <input type="date" id="logDateFilter" class="px-3 py-1 border rounded-lg">
+            </div>
+            <button onclick="filterLogs()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg mt-auto">
+              <i class="fas fa-filter mr-2"></i> Filter
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="py-3 px-4 text-left">Timestamp</th>
+                <th class="py-3 px-4 text-left">Action</th>
+                <th class="py-3 px-4 text-left">Status</th>
+                <th class="py-3 px-4 text-left">User</th>
+                <th class="py-3 px-4 text-left">Details</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        <div class="p-4 border-t flex justify-between items-center">
+          <div id="logsTableInfo" class="text-sm text-gray-600"></div>
+          <div class="flex space-x-2">
+            <button id="prevLogPageBtn" onclick="prevLogPage()" class="px-3 py-1 border rounded-lg disabled:opacity-50" disabled>
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="logPageInfo" class="px-3 py-1">1/1</span>
+            <button id="nextLogPageBtn" onclick="nextLogPage()" class="px-3 py-1 border rounded-lg disabled:opacity-50" disabled>
+              <i class="fas fa-chevron-right"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -412,6 +632,14 @@
         <div class="mb-4">
           <label for="siswaRFID" class="block text-gray-700 mb-2">RFID</label>
           <input type="text" id="siswaRFID" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        
+        <div class="mb-4">
+          <label for="siswaStatus" class="block text-gray-700 mb-2">Status</label>
+          <select id="siswaStatus" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="Aktif">Aktif</option>
+            <option value="Non-Aktif">Non-Aktif</option>
+          </select>
         </div>
         
         <div class="flex justify-end space-x-2 mt-6">
@@ -459,55 +687,56 @@
     </div>
   </div>
 
+  <!-- Modal Konfirmasi -->
+  <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="confirmModalTitle" class="text-xl font-bold">Konfirmasi</h3>
+        <button onclick="hideModal('confirmModal')" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="mb-6">
+        <p id="confirmModalMessage"></p>
+      </div>
+      
+      <div class="flex justify-end space-x-2">
+        <button type="button" onclick="hideModal('confirmModal')" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">
+          Batal
+        </button>
+        <button type="button" id="confirmModalButton" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg">
+          Konfirmasi
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-        // Konfigurasi - GANTI DENGAN URL WEB APP ANDA
+    // Konfigurasi - GANTI DENGAN URL WEB APP ANDA
     const APPSCRIPT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwOKtE_EaBgWGC0t9KllsderbPELc1s_p026a2Kcp35u_8_wiyhOBAIfyLHZ_dq_6T6/exec';
     
     // Variabel global
     let authToken = null;
+    let currentUser = null;
     let siswaData = [];
     let absenData = [];
     let liburData = [];
+    let logsData = [];
     let settings = {};
+    let kelasList = [];
     
-    // Fungsi untuk melakukan request ke server
-    async function makeRequest(action, data = {}) {
-      const formData = new FormData();
-      formData.append('action', action);
-      
-      // Tambahkan data ke formData
-      for (const key in data) {
-        formData.append(key, data[key]);
-      }
-      
-      // Jika ada token auth, tambahkan ke header
-      const headers = {};
-      if (authToken) {
-        headers['Authorization'] = 'Basic ' + authToken;
-      }
-      
-      try {
-        const response = await fetch(APPSCRIPT_WEBAPP_URL, {
-          method: 'POST',
-          body: formData,
-          headers: headers
-        });
-        
-        const result = await response.json();
-        
-        if (!result.success) {
-          throw new Error(result.message || 'Terjadi kesalahan');
-        }
-        
-        return result.data;
-      } catch (error) {
-        console.error('Error:', error);
-        showNotification(error.message, 'error');
-        throw error;
-      }
-    } 
+    // Pagination
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let currentLogPage = 1;
+    const logsPerPage = 10;
+    
     // Inisialisasi saat halaman dimuat
     document.addEventListener('DOMContentLoaded', function() {
+      // Setup event listeners
+      setupEventListeners();
+      
       // Load pengaturan pertama kali
       loadSettings();
       
@@ -518,17 +747,95 @@
       // Setup RFID input
       setupRFIDInput();
       
+      // Cek koneksi internet
+      checkConnection();
+      window.addEventListener('online', checkConnection);
+      window.addEventListener('offline', checkConnection);
+      
       // Tampilkan section berdasarkan hash URL
       const hash = window.location.hash.substring(1) || 'live';
       showSection(hash);
-      
-      // Setup mobile menu button
+    });
+    
+    // ==================== FUNGSI UTAMA ====================
+    function setupEventListeners() {
+      // Mobile menu button
       document.getElementById('mobileMenuButton').addEventListener('click', function() {
         document.getElementById('sidebar').classList.toggle('open');
       });
-    });
+      
+      // RFID input
+      document.getElementById('rfidInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          handleRFIDScan(this.value);
+          this.value = '';
+        }
+      });
+      
+      // Filter logs
+      document.getElementById('logActionFilter').addEventListener('change', filterLogs);
+      document.getElementById('logStatusFilter').addEventListener('change', filterLogs);
+      document.getElementById('logDateFilter').addEventListener('change', filterLogs);
+      
+      // Manual absen waktu
+      document.getElementById('manualWaktu').value = new Date().toISOString().slice(0, 16);
+    }
     
-    // Fungsi untuk menampilkan section tertentu
+    function checkConnection() {
+      const isOnline = navigator.onLine;
+      const connectionStatus = document.getElementById('connectionStatus');
+      
+      if (isOnline) {
+        connectionStatus.classList.add('hidden');
+      } else {
+        connectionStatus.classList.remove('hidden');
+      }
+    }
+    
+    function showLoading() {
+      document.getElementById('loadingOverlay').classList.remove('hidden');
+    }
+    
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+    
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification fixed bottom-4 right-4 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-6 py-3 rounded-lg shadow-lg`;
+      notification.classList.remove('hidden');
+      
+      // Sembunyikan notifikasi setelah 3 detik
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 3000);
+    }
+    
+    function showModal(modalId, title = '') {
+      document.getElementById(modalId).classList.remove('hidden');
+      if (title && document.getElementById(modalId + 'Title')) {
+        document.getElementById(modalId + 'Title').textContent = title;
+      }
+    }
+    
+    function hideModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    function showConfirmModal(title, message, callback) {
+      document.getElementById('confirmModalTitle').textContent = title;
+      document.getElementById('confirmModalMessage').textContent = message;
+      
+      const confirmBtn = document.getElementById('confirmModalButton');
+      confirmBtn.onclick = function() {
+        callback();
+        hideModal('confirmModal');
+      };
+      
+      showModal('confirmModal');
+    }
+    
     function showSection(sectionId) {
       // Sembunyikan semua section
       document.querySelectorAll('.section').forEach(section => {
@@ -564,6 +871,9 @@
         case 'live':
           loadLiveAbsenData();
           break;
+        case 'logs':
+          loadLogsData();
+          break;
       }
       
       // Tutup sidebar di mobile
@@ -572,102 +882,114 @@
       }
     }
     
-    // Fungsi untuk menampilkan modal
-    function showModal(modalId, title = '') {
-      document.getElementById(modalId).classList.remove('hidden');
-      if (title) {
-        document.getElementById(modalId + 'Title').textContent = title;
-      }
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      
+      document.getElementById('currentTime').textContent = timeStr;
+      document.getElementById('currentDate').textContent = dateStr;
     }
     
-    // Fungsi untuk menyembunyikan modal
-    function hideModal(modalId) {
-      document.getElementById(modalId).classList.add('hidden');
-    }
+    // ==================== FUNGSI API REQUEST ====================
+    async function makeRequest(action, data = {}, method = 'GET') {
+      const url = new URL(APPSCRIPT_WEBAPP_URL);
+      const options = {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        redirect: 'follow'
+      };
     
-    // Fungsi untuk menampilkan notifikasi
-    function showNotification(message, type = 'success') {
-      const notification = document.getElementById('notification');
-      notification.textContent = message;
-      notification.className = `notification fixed bottom-4 right-4 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-6 py-3 rounded-lg shadow-lg`;
-      notification.classList.remove('hidden');
-      
-      // Sembunyikan notifikasi setelah 3 detik
-      setTimeout(() => {
-        notification.classList.add('hidden');
-      }, 3000);
-    }
-    
-    // Fungsi untuk melakukan request ke server
-    async function makeRequest(action, data = {}) {
-      const formData = new FormData();
-      formData.append('action', action);
-      
-      // Tambahkan data ke formData
-      for (const key in data) {
-        formData.append(key, data[key]);
-      }
-      
-      // Jika ada token auth, tambahkan ke header
-      const headers = {};
+      // Tambahkan token auth jika ada
       if (authToken) {
-        headers['Authorization'] = 'Basic ' + authToken;
+        options.headers['Authorization'] = `Bearer ${authToken}`;
       }
+    
+      // Handle GET vs POST
+      if (method === 'GET') {
+        url.searchParams.append('action', action);
+        for (const key in data) {
+          url.searchParams.append(key, data[key]);
+        }
+      } else {
+        options.body = JSON.stringify({ action, ...data });
+      }
+    
+      showLoading();
       
       try {
-        const response = await fetch('https://script.google.com/macros/s/AKfycbwOKtE_EaBgWGC0t9KllsderbPELc1s_p026a2Kcp35u_8_wiyhOBAIfyLHZ_dq_6T6/exec', {
-          method: 'POST',
-          body: formData,
-          headers: headers
-        });
+        const response = await fetch(url.toString(), options);
         
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+    
         const result = await response.json();
         
         if (!result.success) {
-          throw new Error(result.message || 'Terjadi kesalahan');
+          throw new Error(result.message || 'Request failed');
         }
-        
+    
         return result.data;
       } catch (error) {
-        console.error('Error:', error);
-        showNotification(error.message, 'error');
+        console.error('Request error:', error);
+        showNotification(error.message || 'Gagal terhubung ke server', 'error');
         throw error;
+      } finally {
+        hideLoading();
       }
     }
     
-    // ==================== FUNGSI LOGIN/LOGOUT ====================
+    // ==================== FUNGSI AUTHENTIKASI ====================
     async function login() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-      
+    
+      if (!username || !password) {
+        showNotification('Username dan password harus diisi', 'error');
+        return;
+      }
+    
       try {
-        const result = await makeRequest('login', { username, password });
+        const result = await makeRequest('login', { username, password }, 'POST');
         authToken = result.token;
+        currentUser = result.user;
         
         // Update UI setelah login
         document.getElementById('adminMenu').classList.remove('hidden');
         document.getElementById('logoutBtn').classList.remove('hidden');
         document.getElementById('loginBtn').classList.add('hidden');
-        
-        // Sembunyikan form login
         document.getElementById('loginSection').classList.add('hidden');
         
-        // Tampilkan dashboard
-        showSection('dashboard');
+        // Update user info di sidebar
+        if (currentUser && currentUser.name) {
+          document.getElementById('appTitle').textContent += ` - ${currentUser.name}`;
+        }
+        
+        // Load data yang diperlukan
+        await loadSettings();
+        await loadDashboardData();
         
         showNotification('Login berhasil');
       } catch (error) {
-        console.error('Login error:', error);
+        console.error('Login failed:', error);
       }
     }
     
     function logout() {
       authToken = null;
+      currentUser = null;
       
       // Update UI setelah logout
       document.getElementById('adminMenu').classList.add('hidden');
       document.getElementById('logoutBtn').classList.add('hidden');
       document.getElementById('loginBtn').classList.remove('hidden');
+      
+      // Reset form login
+      document.getElementById('loginForm').reset();
       
       // Tampilkan live absen
       showSection('live');
@@ -680,7 +1002,11 @@
       try {
         // Load data siswa
         siswaData = await makeRequest('get_siswa');
-        document.getElementById('totalSiswa').textContent = siswaData.length;
+        const totalSiswa = siswaData.length;
+        const activeSiswa = siswaData.filter(s => s.status === 'Aktif').length;
+        
+        document.getElementById('totalSiswa').textContent = totalSiswa;
+        document.getElementById('activeSiswa').textContent = activeSiswa;
         
         // Load data absen hari ini
         const today = new Date().toISOString().split('T')[0];
@@ -688,31 +1014,18 @@
         
         const totalAbsen = absenData.length;
         const totalTerlambat = absenData.filter(a => a.status === 'Terlambat').length;
+        const totalOnTime = absenData.filter(a => a.status === 'Tepat Waktu').length;
+        
+        const presentPercentage = totalSiswa > 0 ? Math.round((totalAbsen / activeSiswa) * 100) : 0;
+        const latePercentage = totalAbsen > 0 ? Math.round((totalTerlambat / totalAbsen) * 100) : 0;
         
         document.getElementById('absenHariIni').textContent = totalAbsen;
         document.getElementById('terlambatHariIni').textContent = totalTerlambat;
+        document.getElementById('presentPercentage').textContent = presentPercentage;
+        document.getElementById('latePercentage').textContent = latePercentage;
         
         // Tampilkan aktivitas terakhir
-        const lastActivityTable = document.getElementById('lastActivityTable');
-        lastActivityTable.innerHTML = '';
-        
-        const lastActivities = absenData.slice(0, 5);
-        lastActivities.forEach(absen => {
-          const row = document.createElement('tr');
-          row.className = 'hover:bg-gray-50';
-          row.innerHTML = `
-            <td class="py-2 px-4 border-b">${absen.nis}</td>
-            <td class="py-2 px-4 border-b">${absen.nama}</td>
-            <td class="py-2 px-4 border-b">${absen.kelas}</td>
-            <td class="py-2 px-4 border-b">${absen.waktu.split(' ')[1]}</td>
-            <td class="py-2 px-4 border-b">
-              <span class="${absen.status === 'Terlambat' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'} text-xs font-medium px-2.5 py-0.5 rounded">
-                ${absen.status}
-              </span>
-            </td>
-          `;
-          lastActivityTable.appendChild(row);
-        });
+        renderLastActivities(absenData.slice(0, 5), 'lastActivityTable');
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       }
@@ -722,6 +1035,20 @@
     async function loadSiswaData() {
       try {
         siswaData = await makeRequest('get_siswa');
+        
+        // Ekstrak daftar kelas unik
+        kelasList = [...new Set(siswaData.map(s => s.kelas))].sort();
+        
+        // Render filter kelas di absensi
+        const kelasFilter = document.getElementById('filterKelas');
+        kelasFilter.innerHTML = '<option value="">Semua Kelas</option>';
+        kelasList.forEach(kelas => {
+          const option = document.createElement('option');
+          option.value = kelas;
+          option.textContent = kelas;
+          kelasFilter.appendChild(option);
+        });
+        
         renderSiswaTable();
       } catch (error) {
         console.error('Error loading siswa data:', error);
@@ -730,9 +1057,35 @@
     
     function renderSiswaTable() {
       const tableBody = document.getElementById('siswaTableBody');
+      const filter = document.getElementById('siswaFilter').value;
+      const searchTerm = document.getElementById('siswaSearch').value.toLowerCase();
+      
+      // Filter data
+      let filteredData = siswaData;
+      
+      if (filter === 'active') {
+        filteredData = filteredData.filter(s => s.status === 'Aktif');
+      } else if (filter === 'inactive') {
+        filteredData = filteredData.filter(s => s.status !== 'Aktif');
+      }
+      
+      if (searchTerm) {
+        filteredData = filteredData.filter(s => 
+          s.nis.toLowerCase().includes(searchTerm) || 
+          s.nama.toLowerCase().includes(searchTerm) ||
+          s.kelas.toLowerCase().includes(searchTerm) ||
+          s.rfid.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Pagination
+      const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+      
       tableBody.innerHTML = '';
       
-      siswaData.forEach(siswa => {
+      paginatedData.forEach(siswa => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50';
         row.innerHTML = `
@@ -741,21 +1094,58 @@
           <td class="py-3 px-4 border-b">${siswa.kelas}</td>
           <td class="py-3 px-4 border-b">${siswa.rfid}</td>
           <td class="py-3 px-4 border-b">
+            <span class="${siswa.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} text-xs font-medium px-2.5 py-0.5 rounded">
+              ${siswa.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 border-b">
             <button onclick="editSiswa('${siswa.id}')" class="text-blue-600 hover:text-blue-800 mr-2">
               <i class="fas fa-edit"></i>
             </button>
-            <button onclick="deleteSiswaConfirm('${siswa.id}')" class="text-red-600 hover:text-red-800">
+            <button onclick="confirmDeleteSiswa('${siswa.id}')" class="text-red-600 hover:text-red-800">
               <i class="fas fa-trash"></i>
             </button>
           </td>
         `;
         tableBody.appendChild(row);
       });
+      
+      // Update info pagination
+      document.getElementById('pageInfo').textContent = `${currentPage}/${totalPages}`;
+      document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+      document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+      document.getElementById('siswaTableInfo').textContent = `Menampilkan ${paginatedData.length} dari ${filteredData.length} siswa`;
+    }
+    
+    function filterSiswaTable() {
+      currentPage = 1;
+      renderSiswaTable();
+    }
+    
+    function searchSiswa() {
+      currentPage = 1;
+      renderSiswaTable();
+    }
+    
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderSiswaTable();
+      }
+    }
+    
+    function nextPage() {
+      const totalPages = Math.ceil(siswaData.length / itemsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderSiswaTable();
+      }
     }
     
     function showAddSiswaModal() {
       document.getElementById('siswaForm').reset();
       document.getElementById('siswaId').value = '';
+      document.getElementById('siswaStatus').value = 'Aktif';
       document.getElementById('siswaModalTitle').textContent = 'Tambah Siswa Baru';
       showModal('siswaModal');
     }
@@ -769,9 +1159,21 @@
       document.getElementById('siswaNama').value = siswa.nama;
       document.getElementById('siswaKelas').value = siswa.kelas;
       document.getElementById('siswaRFID').value = siswa.rfid;
+      document.getElementById('siswaStatus').value = siswa.status;
       
       document.getElementById('siswaModalTitle').textContent = 'Edit Data Siswa';
       showModal('siswaModal');
+    }
+    
+    function confirmDeleteSiswa(siswaId) {
+      const siswa = siswaData.find(s => s.id === siswaId);
+      if (!siswa) return;
+      
+      showConfirmModal(
+        'Konfirmasi Hapus Siswa',
+        `Apakah Anda yakin ingin menghapus siswa ${siswa.nama} (${siswa.nis})?`,
+        () => deleteSiswa(siswaId)
+      );
     }
     
     async function submitSiswaForm() {
@@ -780,7 +1182,8 @@
         nis: document.getElementById('siswaNIS').value,
         nama: document.getElementById('siswaNama').value,
         kelas: document.getElementById('siswaKelas').value,
-        rfid: document.getElementById('siswaRFID').value
+        rfid: document.getElementById('siswaRFID').value,
+        status: document.getElementById('siswaStatus').value
       };
       
       try {
@@ -802,12 +1205,6 @@
       }
     }
     
-    function deleteSiswaConfirm(siswaId) {
-      if (confirm('Apakah Anda yakin ingin menghapus siswa ini?')) {
-        deleteSiswa(siswaId);
-      }
-    }
-    
     async function deleteSiswa(siswaId) {
       try {
         await makeRequest('delete_siswa', { id: siswaId });
@@ -822,7 +1219,15 @@
     async function loadAbsenData() {
       try {
         const filterDate = document.getElementById('filterDate').value;
-        absenData = await makeRequest('get_absen', filterDate ? { tanggal: filterDate } : {});
+        const filterKelas = document.getElementById('filterKelas').value;
+        const filterStatus = document.getElementById('filterStatus').value;
+        
+        const params = {};
+        if (filterDate) params.tanggal = filterDate;
+        if (filterKelas) params.kelas = filterKelas;
+        if (filterStatus) params.status = filterStatus;
+        
+        absenData = await makeRequest('get_absen', params);
         renderAbsenTable();
       } catch (error) {
         console.error('Error loading absen data:', error);
@@ -834,27 +1239,73 @@
       tableBody.innerHTML = '';
       
       absenData.forEach(absen => {
+        const waktu = new Date(absen.waktu);
+        const waktuStr = waktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50';
         row.innerHTML = `
           <td class="py-2 px-4 border-b">${absen.nis}</td>
           <td class="py-2 px-4 border-b">${absen.nama}</td>
           <td class="py-2 px-4 border-b">${absen.kelas}</td>
-          <td class="py-2 px-4 border-b">${absen.waktu}</td>
+          <td class="py-2 px-4 border-b">${waktuStr}</td>
           <td class="py-2 px-4 border-b">
-            <span class="${absen.status === 'Terlambat' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'} text-xs font-medium px-2.5 py-0.5 rounded">
+            <span class="${absen.status === 'Terlambat' ? 'bg-red-100 text-red-800' : 
+                         absen.status === 'Awal' ? 'bg-blue-100 text-blue-800' : 
+                         'bg-green-100 text-green-800'} text-xs font-medium px-2.5 py-0.5 rounded">
               ${absen.status}
             </span>
           </td>
-          <td class="py-2 px-4 border-b">${absen.rfid === 'MANUAL' ? 'Manual' : 'RFID'}</td>
+          <td class="py-2 px-4 border-b">${absen.metode || (absen.rfid === 'MANUAL' ? 'Manual' : 'RFID')}</td>
         `;
         tableBody.appendChild(row);
       });
+      
+      document.getElementById('absenTableInfo').textContent = `Menampilkan ${absenData.length} absen`;
     }
     
     function resetFilter() {
       document.getElementById('filterDate').value = '';
+      document.getElementById('filterKelas').value = '';
+      document.getElementById('filterStatus').value = '';
       loadAbsenData();
+    }
+    
+    async function exportAbsenData() {
+      try {
+        const filterDate = document.getElementById('filterDate').value;
+        const filterKelas = document.getElementById('filterKelas').value;
+        const filterStatus = document.getElementById('filterStatus').value;
+        
+        const params = {};
+        if (filterDate) params.tanggal = filterDate;
+        if (filterKelas) params.kelas = filterKelas;
+        if (filterStatus) params.status = filterStatus;
+        
+        const data = await makeRequest('get_absen', params);
+        
+        // Format data untuk CSV
+        let csv = 'NIS,Nama,Kelas,Waktu,Status,Metode\n';
+        data.forEach(absen => {
+          const waktu = new Date(absen.waktu).toLocaleString('id-ID');
+          csv += `"${absen.nis}","${absen.nama}","${absen.kelas}","${waktu}","${absen.status}","${absen.metode || (absen.rfid === 'MANUAL' ? 'Manual' : 'RFID')}"\n`;
+        });
+        
+        // Buat file dan download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `rekap_absen_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('Data absen berhasil diexport');
+      } catch (error) {
+        console.error('Error exporting absen data:', error);
+        showNotification('Gagal export data absen', 'error');
+      }
     }
     
     // ==================== FUNGSI PENGATURAN ====================
@@ -879,6 +1330,37 @@
       document.getElementById('judulWeb').value = settings.judul_web;
       document.getElementById('deskripsiWeb').value = settings.deskripsi_web;
       document.getElementById('logoUrl').value = settings.logo_url;
+      document.getElementById('modeAbsen').value = settings.mode_absen || 'normal';
+      
+      // Update logo preview
+      const logoPreview = document.getElementById('logoPreview');
+      if (settings.logo_url) {
+        logoPreview.src = settings.logo_url;
+        logoPreview.classList.remove('hidden');
+      } else {
+        logoPreview.classList.add('hidden');
+      }
+    }
+    
+    function resetSettingsForm() {
+      loadSettingsForm();
+      showNotification('Form pengaturan telah direset');
+    }
+    
+    function testLogoUrl() {
+      const url = document.getElementById('logoUrl').value;
+      if (!url) return;
+      
+      const logoPreview = document.getElementById('logoPreview');
+      logoPreview.src = url;
+      logoPreview.onload = function() {
+        logoPreview.classList.remove('hidden');
+        showNotification('Logo berhasil dimuat', 'success');
+      };
+      logoPreview.onerror = function() {
+        logoPreview.classList.add('hidden');
+        showNotification('Gagal memuat logo', 'error');
+      };
     }
     
     async function updateSettings() {
@@ -887,7 +1369,8 @@
         batas_terlambat: document.getElementById('batasTerlambat').value,
         judul_web: document.getElementById('judulWeb').value,
         deskripsi_web: document.getElementById('deskripsiWeb').value,
-        logo_url: document.getElementById('logoUrl').value
+        logo_url: document.getElementById('logoUrl').value,
+        mode_absen: document.getElementById('modeAbsen').value
       };
       
       try {
@@ -919,10 +1402,10 @@
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50';
         row.innerHTML = `
-          <td class="py-3 px-4 border-b">${libur.tanggal}</td>
+          <td class="py-3 px-4 border-b">${libur.tanggal_str}</td>
           <td class="py-3 px-4 border-b">${libur.keterangan}</td>
           <td class="py-3 px-4 border-b">
-            <button onclick="deleteLiburConfirm('${libur.id}')" class="text-red-600 hover:text-red-800">
+            <button onclick="confirmDeleteLibur('${libur.id}')" class="text-red-600 hover:text-red-800">
               <i class="fas fa-trash"></i>
             </button>
           </td>
@@ -933,7 +1416,19 @@
     
     function showAddLiburModal() {
       document.getElementById('liburForm').reset();
+      document.getElementById('liburTanggal').valueAsDate = new Date();
       showModal('liburModal');
+    }
+    
+    function confirmDeleteLibur(liburId) {
+      const libur = liburData.find(l => l.id === liburId);
+      if (!libur) return;
+      
+      showConfirmModal(
+        'Konfirmasi Hapus Hari Libur',
+        `Apakah Anda yakin ingin menghapus hari libur ${libur.tanggal_str} (${libur.keterangan})?`,
+        () => deleteLibur(liburId)
+      );
     }
     
     async function submitLiburForm() {
@@ -952,12 +1447,6 @@
         hideModal('liburModal');
       } catch (error) {
         console.error('Error submitting libur form:', error);
-      }
-    }
-    
-    function deleteLiburConfirm(liburId) {
-      if (confirm('Apakah Anda yakin ingin menghapus hari libur ini?')) {
-        deleteLibur(liburId);
       }
     }
     
@@ -981,7 +1470,7 @@
         const select = document.getElementById('manualSiswa');
         select.innerHTML = '<option value="">-- Pilih Siswa --</option>';
         
-        siswaData.forEach(siswa => {
+        siswaData.filter(s => s.status === 'Aktif').forEach(siswa => {
           const option = document.createElement('option');
           option.value = JSON.stringify({
             siswa_id: siswa.id,
@@ -1007,11 +1496,41 @@
       }
       
       const siswa = JSON.parse(selectedOption.value);
+      const statusSelect = document.getElementById('manualStatus');
+      const waktuInput = document.getElementById('manualWaktu');
+      
+      let status = statusSelect.value;
+      let waktu = new Date(waktuInput.value || new Date());
+      
+      // Jika status auto, tentukan berdasarkan waktu
+      if (status === 'auto') {
+        const settings = await makeRequest('get_settings');
+        const jamMasuk = new Date();
+        const [hours, minutes] = settings.jam_masuk.split(':').map(Number);
+        jamMasuk.setHours(hours, minutes, 0, 0);
+        
+        const selisihMenit = (waktu - jamMasuk) / (1000 * 60);
+        const batasTerlambat = settings.batas_terlambat || 15;
+        
+        if (selisihMenit > batasTerlambat) {
+          status = 'Terlambat';
+        } else if (selisihMenit < 0) {
+          status = 'Awal';
+        } else {
+          status = 'Tepat Waktu';
+        }
+      }
       
       try {
-        const result = await makeRequest('manual_absen', siswa);
+        const result = await makeRequest('manual_absen', { 
+          ...siswa, 
+          status,
+          waktu: waktu.toISOString()
+        });
+        
         showNotification(`Absen manual berhasil: ${siswa.nama} (${result.status})`);
         document.getElementById('manualAbsenForm').reset();
+        loadLiveAbsenData();
       } catch (error) {
         console.error('Error submitting manual absen:', error);
       }
@@ -1040,7 +1559,9 @@
         document.getElementById('lastScanInfo').innerHTML = `
           <div class="font-bold">${result.siswa.nama}</div>
           <div>${result.siswa.kelas} - ${result.siswa.nis}</div>
-          <div class="text-sm">${result.waktu} - <span class="${result.status === 'Terlambat' ? 'text-red-600' : 'text-green-600'}">${result.status}</span></div>
+          <div class="text-sm">${result.waktu} - <span class="${result.status === 'Terlambat' ? 'text-red-600' : 
+                                                              result.status === 'Awal' ? 'text-blue-600' : 
+                                                              'text-green-600'}">${result.status}</span></div>
         `;
         
         // Reload live absen data
@@ -1058,6 +1579,7 @@
         const totalAbsen = absenData.length;
         const totalOnTime = absenData.filter(a => a.status === 'Tepat Waktu').length;
         const totalLate = absenData.filter(a => a.status === 'Terlambat').length;
+        const totalEarly = absenData.filter(a => a.status === 'Awal').length;
         
         // Update stats
         document.getElementById('todayAbsenCount').textContent = totalAbsen;
@@ -1065,12 +1587,11 @@
         document.getElementById('todayLateCount').textContent = totalLate;
         
         // Update progress bars
-        const totalSiswa = siswaData.length || await (async () => {
-          siswaData = await makeRequest('get_siswa');
-          return siswaData.length;
-        })();
+        const activeSiswa = siswaData.length > 0 ? 
+          siswaData.filter(s => s.status === 'Aktif').length : 
+          (await makeRequest('get_siswa')).filter(s => s.status === 'Aktif').length;
         
-        const absenPercent = totalSiswa > 0 ? Math.round((totalAbsen / totalSiswa) * 100) : 0;
+        const absenPercent = activeSiswa > 0 ? Math.round((totalAbsen / activeSiswa) * 100) : 0;
         const onTimePercent = totalAbsen > 0 ? Math.round((totalOnTime / totalAbsen) * 100) : 0;
         const latePercent = totalAbsen > 0 ? Math.round((totalLate / totalAbsen) * 100) : 0;
         
@@ -1078,36 +1599,209 @@
         document.getElementById('todayOnTimeBar').style.width = `${onTimePercent}%`;
         document.getElementById('todayLateBar').style.width = `${latePercent}%`;
         
-        // Update last activities
-        const lastActivitiesContainer = document.getElementById('lastActivities');
-        lastActivitiesContainer.innerHTML = '';
+        document.getElementById('todayAbsenPercentage').textContent = `${absenPercent}%`;
+        document.getElementById('todayOnTimePercentage').textContent = `${onTimePercent}%`;
+        document.getElementById('todayLatePercentage').textContent = `${latePercent}%`;
         
-        const lastActivities = absenData.slice(0, 5);
-        lastActivities.forEach(absen => {
-          const activity = document.createElement('div');
-          activity.className = 'p-2 border-b';
-          activity.innerHTML = `
-            <div class="flex justify-between">
-              <span class="font-medium">${absen.nama}</span>
-              <span class="text-sm ${absen.status === 'Terlambat' ? 'text-red-600' : 'text-green-600'}">${absen.status}</span>
-            </div>
-            <div class="text-sm text-gray-600">${absen.waktu.split(' ')[1]}</div>
-          `;
-          lastActivitiesContainer.appendChild(activity);
+        // Update last activities
+        renderLastActivities(absenData.slice(0, 5), 'lastActivities');
+        
+        // Cek hari libur
+        const isLibur = await makeRequest('get_libur').then(libur => {
+          const todayStr = new Date().toISOString().split('T')[0];
+          return libur.some(l => l.tanggal_str === todayStr);
         });
+        
+        const liburInfo = document.getElementById('liburInfo');
+        if (isLibur) {
+          liburInfo.classList.remove('hidden');
+        } else {
+          liburInfo.classList.add('hidden');
+        }
       } catch (error) {
         console.error('Error loading live absen data:', error);
       }
     }
     
-    // ==================== FUNGSI UTILITAS ====================
-    function updateClock() {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    function renderLastActivities(activities, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
       
-      document.getElementById('currentTime').textContent = timeStr;
-      document.getElementById('currentDate').textContent = dateStr;
+      activities.forEach(absen => {
+        const waktu = new Date(absen.waktu);
+        const waktuStr = waktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        
+        const activity = document.createElement('div');
+        activity.className = 'p-2 border-b';
+        activity.innerHTML = `
+          <div class="flex justify-between">
+            <span class="font-medium">${absen.nama}</span>
+            <span class="text-sm ${absen.status === 'Terlambat' ? 'text-red-600' : 
+                                 absen.status === 'Awal' ? 'text-blue-600' : 
+                                 'text-green-600'}">${absen.status}</span>
+          </div>
+          <div class="flex justify-between text-sm text-gray-600">
+            <span>${absen.kelas} - ${absen.nis}</span>
+            <span>${waktuStr}</span>
+          </div>
+        `;
+        container.appendChild(activity);
+      });
+    }
+    
+    // ==================== FUNGSI LOG SISTEM ====================
+    async function loadLogsData() {
+      try {
+        logsData = await makeRequest('get_logs');
+        currentLogPage = 1;
+        filterLogs();
+      } catch (error) {
+        console.error('Error loading logs data:', error);
+      }
+    }
+    
+    function filterLogs() {
+      const actionFilter = document.getElementById('logActionFilter').value;
+      const statusFilter = document.getElementById('logStatusFilter').value;
+      const dateFilter = document.getElementById('logDateFilter').value;
+      
+      let filteredData = logsData;
+      
+      if (actionFilter) {
+        filteredData = filteredData.filter(log => log.action === actionFilter);
+      }
+      
+      if (statusFilter) {
+        filteredData = filteredData.filter(log => log.status === statusFilter);
+      }
+      
+      if (dateFilter) {
+        const filterDate = new Date(dateFilter).toDateString();
+        filteredData = filteredData.filter(log => 
+          new Date(log.timestamp).toDateString() === filterDate
+        );
+      }
+      
+      renderLogsTable(filteredData);
+    }
+    
+    function renderLogsTable(data) {
+      const tableBody = document.getElementById('logsTableBody');
+      const totalPages = Math.ceil(data.length / logsPerPage);
+      const startIndex = (currentLogPage - 1) * logsPerPage;
+      const paginatedData = data.slice(startIndex, startIndex + logsPerPage);
+      
+      tableBody.innerHTML = '';
+      
+      paginatedData.forEach(log => {
+        const timestamp = new Date(log.timestamp);
+        const timestampStr = timestamp.toLocaleString('id-ID');
+        
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+        row.innerHTML = `
+          <td class="py-3 px-4 border-b">${timestampStr}</td>
+          <td class="py-3 px-4 border-b">${log.action}</td>
+          <td class="py-3 px-4 border-b">
+            <span class="${log.status === 'Success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} text-xs font-medium px-2.5 py-0.5 rounded">
+              ${log.status}
+            </span>
+          </td>
+          <td class="py-3 px-4 border-b">${log.user || '-'}</td>
+          <td class="py-3 px-4 border-b">
+            <button onclick="showLogDetails('${log.timestamp}', ${JSON.stringify(log.details)})" class="text-blue-600 hover:text-blue-800">
+              <i class="fas fa-eye"></i>
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+      
+      // Update info pagination
+      document.getElementById('logPageInfo').textContent = `${currentLogPage}/${totalPages}`;
+      document.getElementById('prevLogPageBtn').disabled = currentLogPage <= 1;
+      document.getElementById('nextLogPageBtn').disabled = currentLogPage >= totalPages;
+      document.getElementById('logsTableInfo').textContent = `Menampilkan ${paginatedData.length} dari ${data.length} log`;
+    }
+    
+    function prevLogPage() {
+      if (currentLogPage > 1) {
+        currentLogPage--;
+        filterLogs();
+      }
+    }
+    
+    function nextLogPage() {
+      const filteredData = getFilteredLogs();
+      const totalPages = Math.ceil(filteredData.length / logsPerPage);
+      
+      if (currentLogPage < totalPages) {
+        currentLogPage++;
+        filterLogs();
+      }
+    }
+    
+    function showLogDetails(timestamp, details) {
+      let detailsStr = '';
+      
+      if (typeof details === 'object') {
+        detailsStr = JSON.stringify(details, null, 2);
+      } else {
+        detailsStr = details;
+      }
+      
+      showConfirmModal(
+        `Detail Log - ${new Date(timestamp).toLocaleString()}`,
+        `<pre class="bg-gray-100 p-2 rounded overflow-auto max-h-60">${detailsStr}</pre>`,
+        () => {}
+      );
+      
+      // Ubah tombol konfirmasi menjadi tutup
+      const confirmBtn = document.getElementById('confirmModalButton');
+      confirmBtn.textContent = 'Tutup';
+      confirmBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg';
+    }
+    
+    async function clearLogs() {
+      showConfirmModal(
+        'Konfirmasi Clear Logs',
+        'Apakah Anda yakin ingin menghapus semua log sistem?',
+        async () => {
+          try {
+            await makeRequest('clear_logs');
+            showNotification('Log sistem berhasil dihapus');
+            loadLogsData();
+          } catch (error) {
+            console.error('Error clearing logs:', error);
+            showNotification('Gagal menghapus log sistem', 'error');
+          }
+        }
+      );
+    }
+    
+    function getFilteredLogs() {
+      const actionFilter = document.getElementById('logActionFilter').value;
+      const statusFilter = document.getElementById('logStatusFilter').value;
+      const dateFilter = document.getElementById('logDateFilter').value;
+      
+      let filteredData = logsData;
+      
+      if (actionFilter) {
+        filteredData = filteredData.filter(log => log.action === actionFilter);
+      }
+      
+      if (statusFilter) {
+        filteredData = filteredData.filter(log => log.status === statusFilter);
+      }
+      
+      if (dateFilter) {
+        const filterDate = new Date(dateFilter).toDateString();
+        filteredData = filteredData.filter(log => 
+          new Date(log.timestamp).toDateString() === filterDate
+        );
+      }
+      
+      return filteredData;
     }
   </script>
 </body>
