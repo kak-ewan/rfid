@@ -1,0 +1,1114 @@
+<!-- File: index.html -->
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Absensi Siswa</title>
+  <link rel="icon" href="data:,">
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    .sidebar {
+      transition: all 0.3s;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+    .notification {
+      animation: slideIn 0.5s, fadeOut 0.5s 2.5s forwards;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <!-- Notification -->
+  <div id="notification" class="notification fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden"></div>
+
+  <!-- Mobile Menu Button -->
+  <button id="mobileMenuButton" class="md:hidden fixed top-4 left-4 z-50 bg-blue-600 text-white p-2 rounded-lg shadow">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar fixed inset-y-0 left-0 w-64 bg-blue-800 text-white p-4 shadow-lg z-40">
+    <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center">
+        <img id="logo" src="" alt="Logo" class="w-10 h-10 rounded-full mr-2">
+        <h1 id="appTitle" class="text-xl font-bold"></h1>
+      </div>
+    </div>
+    
+    <div id="adminMenu" class="hidden">
+      <h2 class="text-lg font-semibold mb-2">Menu Admin</h2>
+      <ul class="space-y-2">
+        <li><a href="#" onclick="showSection('dashboard')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-tachometer-alt mr-2"></i> Dashboard</a></li>
+        <li><a href="#" onclick="showSection('siswa')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-users mr-2"></i> Data Siswa</a></li>
+        <li><a href="#" onclick="showSection('absen')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-clipboard-list mr-2"></i> Rekap Absen</a></li>
+        <li><a href="#" onclick="showSection('settings')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-cog mr-2"></i> Pengaturan</a></li>
+        <li><a href="#" onclick="showSection('libur')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-calendar-alt mr-2"></i> Hari Libur</a></li>
+        <li><a href="#" onclick="showSection('manual')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-pen mr-2"></i> Absen Manual</a></li>
+      </ul>
+    </div>
+    
+    <div id="publicMenu" class="mt-6">
+      <h2 class="text-lg font-semibold mb-2">Menu Absen</h2>
+      <ul class="space-y-2">
+        <li><a href="#" onclick="showSection('live')" class="block py-2 px-3 rounded hover:bg-blue-700"><i class="fas fa-qrcode mr-2"></i> Live Absen</a></li>
+      </ul>
+    </div>
+    
+    <div class="absolute bottom-4 left-4 right-4">
+      <button id="logoutBtn" onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded hidden">
+        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+      </button>
+      <button id="loginBtn" onclick="showSection('login')" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded">
+        <i class="fas fa-sign-in-alt mr-2"></i> Login Admin
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="ml-0 md:ml-64 p-4 transition-all duration-300">
+    <!-- Login Section -->
+    <div id="loginSection" class="section bg-white rounded-lg shadow p-6 max-w-md mx-auto">
+      <h2 class="text-2xl font-bold mb-6 text-center">Login Admin</h2>
+      <form id="loginForm" onsubmit="event.preventDefault(); login();">
+        <div class="mb-4">
+          <label for="username" class="block text-gray-700 mb-2">Username</label>
+          <input type="text" id="username" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <div class="mb-6">
+          <label for="password" class="block text-gray-700 mb-2">Password</label>
+          <input type="password" id="password" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+          <i class="fas fa-sign-in-alt mr-2"></i> Login
+        </button>
+      </form>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="section hidden">
+      <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-lg font-semibold mb-2">Total Siswa</h3>
+          <p id="totalSiswa" class="text-3xl font-bold text-blue-600">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-lg font-semibold mb-2">Absen Hari Ini</h3>
+          <p id="absenHariIni" class="text-3xl font-bold text-green-600">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-lg font-semibold mb-2">Terlambat Hari Ini</h3>
+          <p id="terlambatHariIni" class="text-3xl font-bold text-red-600">0</p>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Aktivitas Terakhir</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr>
+                <th class="py-2 px-4 border-b">NIS</th>
+                <th class="py-2 px-4 border-b">Nama</th>
+                <th class="py-2 px-4 border-b">Kelas</th>
+                <th class="py-2 px-4 border-b">Waktu</th>
+                <th class="py-2 px-4 border-b">Status</th>
+              </tr>
+            </thead>
+            <tbody id="lastActivityTable">
+              <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Siswa Section -->
+    <div id="siswaSection" class="section hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Data Siswa</h2>
+        <button onclick="showAddSiswaModal()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+          <i class="fas fa-plus mr-2"></i> Tambah Siswa
+        </button>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="py-3 px-4 text-left">NIS</th>
+                <th class="py-3 px-4 text-left">Nama</th>
+                <th class="py-3 px-4 text-left">Kelas</th>
+                <th class="py-3 px-4 text-left">RFID</th>
+                <th class="py-3 px-4 text-left">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="siswaTableBody">
+              <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rekap Absen Section -->
+    <div id="absenSection" class="section hidden">
+      <h2 class="text-2xl font-bold mb-6">Rekap Absensi</h2>
+      
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+          <h3 class="text-lg font-semibold mb-2 md:mb-0">Filter Data</h3>
+          <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+            <input type="date" id="filterDate" class="px-3 py-2 border rounded-lg">
+            <button onclick="loadAbsenData()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+              <i class="fas fa-filter mr-2"></i> Filter
+            </button>
+            <button onclick="resetFilter()" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg">
+              <i class="fas fa-sync-alt mr-2"></i> Reset
+            </button>
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr>
+                <th class="py-2 px-4 border-b">NIS</th>
+                <th class="py-2 px-4 border-b">Nama</th>
+                <th class="py-2 px-4 border-b">Kelas</th>
+                <th class="py-2 px-4 border-b">Waktu</th>
+                <th class="py-2 px-4 border-b">Status</th>
+                <th class="py-2 px-4 border-b">Metode</th>
+              </tr>
+            </thead>
+            <tbody id="absenTableBody">
+              <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pengaturan Section -->
+    <div id="settingsSection" class="section hidden">
+      <h2 class="text-2xl font-bold mb-6">Pengaturan Sistem</h2>
+      
+      <div class="bg-white rounded-lg shadow p-6">
+        <form id="settingsForm" onsubmit="event.preventDefault(); updateSettings();">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-lg font-semibold mb-4">Pengaturan Absensi</h3>
+              
+              <div class="mb-4">
+                <label for="jamMasuk" class="block text-gray-700 mb-2">Jam Masuk</label>
+                <input type="time" id="jamMasuk" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              </div>
+              
+              <div class="mb-4">
+                <label for="batasTerlambat" class="block text-gray-700 mb-2">Batas Terlambat (menit)</label>
+                <input type="number" id="batasTerlambat" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              </div>
+            </div>
+            
+            <div>
+              <h3 class="text-lg font-semibold mb-4">Pengaturan Website</h3>
+              
+              <div class="mb-4">
+                <label for="judulWeb" class="block text-gray-700 mb-2">Judul Website</label>
+                <input type="text" id="judulWeb" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              </div>
+              
+              <div class="mb-4">
+                <label for="deskripsiWeb" class="block text-gray-700 mb-2">Deskripsi Website</label>
+                <textarea id="deskripsiWeb" rows="2" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              </div>
+              
+              <div class="mb-4">
+                <label for="logoUrl" class="block text-gray-700 mb-2">URL Logo</label>
+                <input type="url" id="logoUrl" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">
+              <i class="fas fa-save mr-2"></i> Simpan Pengaturan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Hari Libur Section -->
+    <div id="liburSection" class="section hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Hari Libur</h2>
+        <button onclick="showAddLiburModal()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+          <i class="fas fa-plus mr-2"></i> Tambah Hari Libur
+        </button>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="py-3 px-4 text-left">Tanggal</th>
+                <th class="py-3 px-4 text-left">Keterangan</th>
+                <th class="py-3 px-4 text-left">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="liburTableBody">
+              <!-- Data akan diisi oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Absen Manual Section -->
+    <div id="manualSection" class="section hidden">
+      <h2 class="text-2xl font-bold mb-6">Absen Manual</h2>
+      
+      <div class="bg-white rounded-lg shadow p-6">
+        <form id="manualAbsenForm" onsubmit="event.preventDefault(); submitManualAbsen();">
+          <div class="mb-4">
+            <label for="manualSiswa" class="block text-gray-700 mb-2">Pilih Siswa</label>
+            <select id="manualSiswa" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <option value="">-- Pilih Siswa --</option>
+              <!-- Data akan diisi oleh JavaScript -->
+            </select>
+          </div>
+          
+          <div class="flex justify-end">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg">
+              <i class="fas fa-check mr-2"></i> Catat Absen
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Live Absen Section -->
+    <div id="liveSection" class="section hidden">
+      <div class="flex flex-col md:flex-row gap-6">
+        <div class="md:w-2/3">
+          <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-2xl font-bold mb-6">Live Absensi</h2>
+            
+            <div class="text-center mb-6">
+              <div class="text-5xl font-bold mb-2" id="currentTime"></div>
+              <div class="text-xl" id="currentDate"></div>
+            </div>
+            
+            <div class="mb-6">
+              <label class="block text-gray-700 mb-2">Scan RFID</label>
+              <input type="text" id="rfidInput" class="w-full px-3 py-4 text-center text-xl border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tempelkan Kartu RFID" autofocus>
+            </div>
+            
+            <div class="bg-gray-100 rounded-lg p-4">
+              <h3 class="font-semibold mb-2">Last Scan</h3>
+              <div id="lastScanInfo" class="text-gray-700">
+                Belum ada scan
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="md:w-1/3">
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-4">Info Absen Hari Ini</h3>
+            
+            <div class="space-y-4">
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="font-medium">Total Absen</span>
+                  <span class="font-bold" id="todayAbsenCount">0</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                  <div id="todayAbsenBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="font-medium">Tepat Waktu</span>
+                  <span class="font-bold text-green-600" id="todayOnTimeCount">0</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                  <div id="todayOnTimeBar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="font-medium">Terlambat</span>
+                  <span class="font-bold text-red-600" id="todayLateCount">0</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                  <div id="todayLateBar" class="bg-red-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-6">
+              <h4 class="font-semibold mb-2">Aktivitas Terakhir</h4>
+              <div class="space-y-2" id="lastActivities">
+                <!-- Data akan diisi oleh JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah/Edit Siswa -->
+  <div id="siswaModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="siswaModalTitle" class="text-xl font-bold"></h3>
+        <button onclick="hideModal('siswaModal')" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <form id="siswaForm" onsubmit="event.preventDefault(); submitSiswaForm();">
+        <input type="hidden" id="siswaId">
+        
+        <div class="mb-4">
+          <label for="siswaNIS" class="block text-gray-700 mb-2">NIS</label>
+          <input type="text" id="siswaNIS" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        
+        <div class="mb-4">
+          <label for="siswaNama" class="block text-gray-700 mb-2">Nama</label>
+          <input type="text" id="siswaNama" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        
+        <div class="mb-4">
+          <label for="siswaKelas" class="block text-gray-700 mb-2">Kelas</label>
+          <input type="text" id="siswaKelas" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        
+        <div class="mb-4">
+          <label for="siswaRFID" class="block text-gray-700 mb-2">RFID</label>
+          <input type="text" id="siswaRFID" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        
+        <div class="flex justify-end space-x-2 mt-6">
+          <button type="button" onclick="hideModal('siswaModal')" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">
+            Batal
+          </button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+            Simpan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Hari Libur -->
+  <div id="liburModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">Tambah Hari Libur</h3>
+        <button onclick="hideModal('liburModal')" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <form id="liburForm" onsubmit="event.preventDefault(); submitLiburForm();">
+        <div class="mb-4">
+          <label for="liburTanggal" class="block text-gray-700 mb-2">Tanggal</label>
+          <input type="date" id="liburTanggal" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        
+        <div class="mb-4">
+          <label for="liburKeterangan" class="block text-gray-700 mb-2">Keterangan</label>
+          <input type="text" id="liburKeterangan" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        
+        <div class="flex justify-end space-x-2 mt-6">
+          <button type="button" onclick="hideModal('liburModal')" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">
+            Batal
+          </button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+            Simpan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+        // Konfigurasi - GANTI DENGAN URL WEB APP ANDA
+    const APPSCRIPT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwOKtE_EaBgWGC0t9KllsderbPELc1s_p026a2Kcp35u_8_wiyhOBAIfyLHZ_dq_6T6/exec';
+    
+    // Variabel global
+    let authToken = null;
+    let siswaData = [];
+    let absenData = [];
+    let liburData = [];
+    let settings = {};
+    
+    // Fungsi untuk melakukan request ke server
+    async function makeRequest(action, data = {}) {
+      const formData = new FormData();
+      formData.append('action', action);
+      
+      // Tambahkan data ke formData
+      for (const key in data) {
+        formData.append(key, data[key]);
+      }
+      
+      // Jika ada token auth, tambahkan ke header
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = 'Basic ' + authToken;
+      }
+      
+      try {
+        const response = await fetch(APPSCRIPT_WEBAPP_URL, {
+          method: 'POST',
+          body: formData,
+          headers: headers
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Terjadi kesalahan');
+        }
+        
+        return result.data;
+      } catch (error) {
+        console.error('Error:', error);
+        showNotification(error.message, 'error');
+        throw error;
+      }
+    } 
+    // Inisialisasi saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load pengaturan pertama kali
+      loadSettings();
+      
+      // Update waktu secara real-time
+      updateClock();
+      setInterval(updateClock, 1000);
+      
+      // Setup RFID input
+      setupRFIDInput();
+      
+      // Tampilkan section berdasarkan hash URL
+      const hash = window.location.hash.substring(1) || 'live';
+      showSection(hash);
+      
+      // Setup mobile menu button
+      document.getElementById('mobileMenuButton').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('open');
+      });
+    });
+    
+    // Fungsi untuk menampilkan section tertentu
+    function showSection(sectionId) {
+      // Sembunyikan semua section
+      document.querySelectorAll('.section').forEach(section => {
+        section.classList.add('hidden');
+      });
+      
+      // Tampilkan section yang dipilih
+      document.getElementById(sectionId + 'Section').classList.remove('hidden');
+      
+      // Update URL hash
+      window.location.hash = sectionId;
+      
+      // Load data sesuai section
+      switch(sectionId) {
+        case 'dashboard':
+          loadDashboardData();
+          break;
+        case 'siswa':
+          loadSiswaData();
+          break;
+        case 'absen':
+          loadAbsenData();
+          break;
+        case 'settings':
+          loadSettingsForm();
+          break;
+        case 'libur':
+          loadLiburData();
+          break;
+        case 'manual':
+          loadManualAbsenForm();
+          break;
+        case 'live':
+          loadLiveAbsenData();
+          break;
+      }
+      
+      // Tutup sidebar di mobile
+      if (window.innerWidth < 768) {
+        document.getElementById('sidebar').classList.remove('open');
+      }
+    }
+    
+    // Fungsi untuk menampilkan modal
+    function showModal(modalId, title = '') {
+      document.getElementById(modalId).classList.remove('hidden');
+      if (title) {
+        document.getElementById(modalId + 'Title').textContent = title;
+      }
+    }
+    
+    // Fungsi untuk menyembunyikan modal
+    function hideModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Fungsi untuk menampilkan notifikasi
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification fixed bottom-4 right-4 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-6 py-3 rounded-lg shadow-lg`;
+      notification.classList.remove('hidden');
+      
+      // Sembunyikan notifikasi setelah 3 detik
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 3000);
+    }
+    
+    // Fungsi untuk melakukan request ke server
+    async function makeRequest(action, data = {}) {
+      const formData = new FormData();
+      formData.append('action', action);
+      
+      // Tambahkan data ke formData
+      for (const key in data) {
+        formData.append(key, data[key]);
+      }
+      
+      // Jika ada token auth, tambahkan ke header
+      const headers = {};
+      if (authToken) {
+        headers['Authorization'] = 'Basic ' + authToken;
+      }
+      
+      try {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbwOKtE_EaBgWGC0t9KllsderbPELc1s_p026a2Kcp35u_8_wiyhOBAIfyLHZ_dq_6T6/exec', {
+          method: 'POST',
+          body: formData,
+          headers: headers
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Terjadi kesalahan');
+        }
+        
+        return result.data;
+      } catch (error) {
+        console.error('Error:', error);
+        showNotification(error.message, 'error');
+        throw error;
+      }
+    }
+    
+    // ==================== FUNGSI LOGIN/LOGOUT ====================
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        const result = await makeRequest('login', { username, password });
+        authToken = result.token;
+        
+        // Update UI setelah login
+        document.getElementById('adminMenu').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        document.getElementById('loginBtn').classList.add('hidden');
+        
+        // Sembunyikan form login
+        document.getElementById('loginSection').classList.add('hidden');
+        
+        // Tampilkan dashboard
+        showSection('dashboard');
+        
+        showNotification('Login berhasil');
+      } catch (error) {
+        console.error('Login error:', error);
+      }
+    }
+    
+    function logout() {
+      authToken = null;
+      
+      // Update UI setelah logout
+      document.getElementById('adminMenu').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+      document.getElementById('loginBtn').classList.remove('hidden');
+      
+      // Tampilkan live absen
+      showSection('live');
+      
+      showNotification('Anda telah logout');
+    }
+    
+    // ==================== FUNGSI DASHBOARD ====================
+    async function loadDashboardData() {
+      try {
+        // Load data siswa
+        siswaData = await makeRequest('get_siswa');
+        document.getElementById('totalSiswa').textContent = siswaData.length;
+        
+        // Load data absen hari ini
+        const today = new Date().toISOString().split('T')[0];
+        absenData = await makeRequest('get_absen', { tanggal: today });
+        
+        const totalAbsen = absenData.length;
+        const totalTerlambat = absenData.filter(a => a.status === 'Terlambat').length;
+        
+        document.getElementById('absenHariIni').textContent = totalAbsen;
+        document.getElementById('terlambatHariIni').textContent = totalTerlambat;
+        
+        // Tampilkan aktivitas terakhir
+        const lastActivityTable = document.getElementById('lastActivityTable');
+        lastActivityTable.innerHTML = '';
+        
+        const lastActivities = absenData.slice(0, 5);
+        lastActivities.forEach(absen => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-gray-50';
+          row.innerHTML = `
+            <td class="py-2 px-4 border-b">${absen.nis}</td>
+            <td class="py-2 px-4 border-b">${absen.nama}</td>
+            <td class="py-2 px-4 border-b">${absen.kelas}</td>
+            <td class="py-2 px-4 border-b">${absen.waktu.split(' ')[1]}</td>
+            <td class="py-2 px-4 border-b">
+              <span class="${absen.status === 'Terlambat' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'} text-xs font-medium px-2.5 py-0.5 rounded">
+                ${absen.status}
+              </span>
+            </td>
+          `;
+          lastActivityTable.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      }
+    }
+    
+    // ==================== FUNGSI DATA SISWA ====================
+    async function loadSiswaData() {
+      try {
+        siswaData = await makeRequest('get_siswa');
+        renderSiswaTable();
+      } catch (error) {
+        console.error('Error loading siswa data:', error);
+      }
+    }
+    
+    function renderSiswaTable() {
+      const tableBody = document.getElementById('siswaTableBody');
+      tableBody.innerHTML = '';
+      
+      siswaData.forEach(siswa => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+        row.innerHTML = `
+          <td class="py-3 px-4 border-b">${siswa.nis}</td>
+          <td class="py-3 px-4 border-b">${siswa.nama}</td>
+          <td class="py-3 px-4 border-b">${siswa.kelas}</td>
+          <td class="py-3 px-4 border-b">${siswa.rfid}</td>
+          <td class="py-3 px-4 border-b">
+            <button onclick="editSiswa('${siswa.id}')" class="text-blue-600 hover:text-blue-800 mr-2">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button onclick="deleteSiswaConfirm('${siswa.id}')" class="text-red-600 hover:text-red-800">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+    
+    function showAddSiswaModal() {
+      document.getElementById('siswaForm').reset();
+      document.getElementById('siswaId').value = '';
+      document.getElementById('siswaModalTitle').textContent = 'Tambah Siswa Baru';
+      showModal('siswaModal');
+    }
+    
+    function editSiswa(siswaId) {
+      const siswa = siswaData.find(s => s.id === siswaId);
+      if (!siswa) return;
+      
+      document.getElementById('siswaId').value = siswa.id;
+      document.getElementById('siswaNIS').value = siswa.nis;
+      document.getElementById('siswaNama').value = siswa.nama;
+      document.getElementById('siswaKelas').value = siswa.kelas;
+      document.getElementById('siswaRFID').value = siswa.rfid;
+      
+      document.getElementById('siswaModalTitle').textContent = 'Edit Data Siswa';
+      showModal('siswaModal');
+    }
+    
+    async function submitSiswaForm() {
+      const formData = {
+        id: document.getElementById('siswaId').value,
+        nis: document.getElementById('siswaNIS').value,
+        nama: document.getElementById('siswaNama').value,
+        kelas: document.getElementById('siswaKelas').value,
+        rfid: document.getElementById('siswaRFID').value
+      };
+      
+      try {
+        if (formData.id) {
+          // Update siswa
+          await makeRequest('update_siswa', formData);
+          showNotification('Data siswa berhasil diperbarui');
+        } else {
+          // Tambah siswa baru
+          await makeRequest('add_siswa', formData);
+          showNotification('Siswa baru berhasil ditambahkan');
+        }
+        
+        // Reload data siswa
+        await loadSiswaData();
+        hideModal('siswaModal');
+      } catch (error) {
+        console.error('Error submitting siswa form:', error);
+      }
+    }
+    
+    function deleteSiswaConfirm(siswaId) {
+      if (confirm('Apakah Anda yakin ingin menghapus siswa ini?')) {
+        deleteSiswa(siswaId);
+      }
+    }
+    
+    async function deleteSiswa(siswaId) {
+      try {
+        await makeRequest('delete_siswa', { id: siswaId });
+        showNotification('Siswa berhasil dihapus');
+        await loadSiswaData();
+      } catch (error) {
+        console.error('Error deleting siswa:', error);
+      }
+    }
+    
+    // ==================== FUNGSI REKAP ABSEN ====================
+    async function loadAbsenData() {
+      try {
+        const filterDate = document.getElementById('filterDate').value;
+        absenData = await makeRequest('get_absen', filterDate ? { tanggal: filterDate } : {});
+        renderAbsenTable();
+      } catch (error) {
+        console.error('Error loading absen data:', error);
+      }
+    }
+    
+    function renderAbsenTable() {
+      const tableBody = document.getElementById('absenTableBody');
+      tableBody.innerHTML = '';
+      
+      absenData.forEach(absen => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+        row.innerHTML = `
+          <td class="py-2 px-4 border-b">${absen.nis}</td>
+          <td class="py-2 px-4 border-b">${absen.nama}</td>
+          <td class="py-2 px-4 border-b">${absen.kelas}</td>
+          <td class="py-2 px-4 border-b">${absen.waktu}</td>
+          <td class="py-2 px-4 border-b">
+            <span class="${absen.status === 'Terlambat' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'} text-xs font-medium px-2.5 py-0.5 rounded">
+              ${absen.status}
+            </span>
+          </td>
+          <td class="py-2 px-4 border-b">${absen.rfid === 'MANUAL' ? 'Manual' : 'RFID'}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+    
+    function resetFilter() {
+      document.getElementById('filterDate').value = '';
+      loadAbsenData();
+    }
+    
+    // ==================== FUNGSI PENGATURAN ====================
+    async function loadSettings() {
+      try {
+        settings = await makeRequest('get_settings');
+        
+        // Update UI dengan pengaturan
+        document.getElementById('appTitle').textContent = settings.judul_web;
+        document.getElementById('logo').src = settings.logo_url || 'https://via.placeholder.com/40';
+        
+        // Update judul halaman
+        document.title = settings.judul_web;
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    }
+    
+    function loadSettingsForm() {
+      document.getElementById('jamMasuk').value = settings.jam_masuk;
+      document.getElementById('batasTerlambat').value = settings.batas_terlambat;
+      document.getElementById('judulWeb').value = settings.judul_web;
+      document.getElementById('deskripsiWeb').value = settings.deskripsi_web;
+      document.getElementById('logoUrl').value = settings.logo_url;
+    }
+    
+    async function updateSettings() {
+      const formData = {
+        jam_masuk: document.getElementById('jamMasuk').value,
+        batas_terlambat: document.getElementById('batasTerlambat').value,
+        judul_web: document.getElementById('judulWeb').value,
+        deskripsi_web: document.getElementById('deskripsiWeb').value,
+        logo_url: document.getElementById('logoUrl').value
+      };
+      
+      try {
+        await makeRequest('update_settings', formData);
+        showNotification('Pengaturan berhasil diperbarui');
+        
+        // Reload settings
+        await loadSettings();
+      } catch (error) {
+        console.error('Error updating settings:', error);
+      }
+    }
+    
+    // ==================== FUNGSI HARI LIBUR ====================
+    async function loadLiburData() {
+      try {
+        liburData = await makeRequest('get_libur');
+        renderLiburTable();
+      } catch (error) {
+        console.error('Error loading libur data:', error);
+      }
+    }
+    
+    function renderLiburTable() {
+      const tableBody = document.getElementById('liburTableBody');
+      tableBody.innerHTML = '';
+      
+      liburData.forEach(libur => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+        row.innerHTML = `
+          <td class="py-3 px-4 border-b">${libur.tanggal}</td>
+          <td class="py-3 px-4 border-b">${libur.keterangan}</td>
+          <td class="py-3 px-4 border-b">
+            <button onclick="deleteLiburConfirm('${libur.id}')" class="text-red-600 hover:text-red-800">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+    
+    function showAddLiburModal() {
+      document.getElementById('liburForm').reset();
+      showModal('liburModal');
+    }
+    
+    async function submitLiburForm() {
+      const formData = {
+        action: 'add',
+        tanggal: document.getElementById('liburTanggal').value,
+        keterangan: document.getElementById('liburKeterangan').value
+      };
+      
+      try {
+        await makeRequest('update_libur', formData);
+        showNotification('Hari libur berhasil ditambahkan');
+        
+        // Reload data libur
+        await loadLiburData();
+        hideModal('liburModal');
+      } catch (error) {
+        console.error('Error submitting libur form:', error);
+      }
+    }
+    
+    function deleteLiburConfirm(liburId) {
+      if (confirm('Apakah Anda yakin ingin menghapus hari libur ini?')) {
+        deleteLibur(liburId);
+      }
+    }
+    
+    async function deleteLibur(liburId) {
+      try {
+        await makeRequest('update_libur', { action: 'delete', id: liburId });
+        showNotification('Hari libur berhasil dihapus');
+        await loadLiburData();
+      } catch (error) {
+        console.error('Error deleting libur:', error);
+      }
+    }
+    
+    // ==================== FUNGSI ABSEN MANUAL ====================
+    async function loadManualAbsenForm() {
+      try {
+        if (siswaData.length === 0) {
+          siswaData = await makeRequest('get_siswa');
+        }
+        
+        const select = document.getElementById('manualSiswa');
+        select.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+        
+        siswaData.forEach(siswa => {
+          const option = document.createElement('option');
+          option.value = JSON.stringify({
+            siswa_id: siswa.id,
+            nis: siswa.nis,
+            nama: siswa.nama,
+            kelas: siswa.kelas
+          });
+          option.textContent = `${siswa.nis} - ${siswa.nama} (${siswa.kelas})`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading manual absen form:', error);
+      }
+    }
+    
+    async function submitManualAbsen() {
+      const siswaSelect = document.getElementById('manualSiswa');
+      const selectedOption = siswaSelect.options[siswaSelect.selectedIndex];
+      
+      if (!selectedOption.value) {
+        showNotification('Pilih siswa terlebih dahulu', 'error');
+        return;
+      }
+      
+      const siswa = JSON.parse(selectedOption.value);
+      
+      try {
+        const result = await makeRequest('manual_absen', siswa);
+        showNotification(`Absen manual berhasil: ${siswa.nama} (${result.status})`);
+        document.getElementById('manualAbsenForm').reset();
+      } catch (error) {
+        console.error('Error submitting manual absen:', error);
+      }
+    }
+    
+    // ==================== FUNGSI LIVE ABSEN ====================
+    function setupRFIDInput() {
+      const rfidInput = document.getElementById('rfidInput');
+      
+      rfidInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          handleRFIDScan(this.value);
+          this.value = '';
+        }
+      });
+    }
+    
+    async function handleRFIDScan(rfid) {
+      try {
+        const result = await makeRequest('scan_rfid', { rfid: rfid });
+        
+        // Tampilkan notifikasi
+        showNotification(`Absen berhasil: ${result.siswa.nama} (${result.status})`);
+        
+        // Update last scan info
+        document.getElementById('lastScanInfo').innerHTML = `
+          <div class="font-bold">${result.siswa.nama}</div>
+          <div>${result.siswa.kelas} - ${result.siswa.nis}</div>
+          <div class="text-sm">${result.waktu} - <span class="${result.status === 'Terlambat' ? 'text-red-600' : 'text-green-600'}">${result.status}</span></div>
+        `;
+        
+        // Reload live absen data
+        await loadLiveAbsenData();
+      } catch (error) {
+        console.error('Error handling RFID scan:', error);
+      }
+    }
+    
+    async function loadLiveAbsenData() {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        absenData = await makeRequest('get_absen', { tanggal: today });
+        
+        const totalAbsen = absenData.length;
+        const totalOnTime = absenData.filter(a => a.status === 'Tepat Waktu').length;
+        const totalLate = absenData.filter(a => a.status === 'Terlambat').length;
+        
+        // Update stats
+        document.getElementById('todayAbsenCount').textContent = totalAbsen;
+        document.getElementById('todayOnTimeCount').textContent = totalOnTime;
+        document.getElementById('todayLateCount').textContent = totalLate;
+        
+        // Update progress bars
+        const totalSiswa = siswaData.length || await (async () => {
+          siswaData = await makeRequest('get_siswa');
+          return siswaData.length;
+        })();
+        
+        const absenPercent = totalSiswa > 0 ? Math.round((totalAbsen / totalSiswa) * 100) : 0;
+        const onTimePercent = totalAbsen > 0 ? Math.round((totalOnTime / totalAbsen) * 100) : 0;
+        const latePercent = totalAbsen > 0 ? Math.round((totalLate / totalAbsen) * 100) : 0;
+        
+        document.getElementById('todayAbsenBar').style.width = `${absenPercent}%`;
+        document.getElementById('todayOnTimeBar').style.width = `${onTimePercent}%`;
+        document.getElementById('todayLateBar').style.width = `${latePercent}%`;
+        
+        // Update last activities
+        const lastActivitiesContainer = document.getElementById('lastActivities');
+        lastActivitiesContainer.innerHTML = '';
+        
+        const lastActivities = absenData.slice(0, 5);
+        lastActivities.forEach(absen => {
+          const activity = document.createElement('div');
+          activity.className = 'p-2 border-b';
+          activity.innerHTML = `
+            <div class="flex justify-between">
+              <span class="font-medium">${absen.nama}</span>
+              <span class="text-sm ${absen.status === 'Terlambat' ? 'text-red-600' : 'text-green-600'}">${absen.status}</span>
+            </div>
+            <div class="text-sm text-gray-600">${absen.waktu.split(' ')[1]}</div>
+          `;
+          lastActivitiesContainer.appendChild(activity);
+        });
+      } catch (error) {
+        console.error('Error loading live absen data:', error);
+      }
+    }
+    
+    // ==================== FUNGSI UTILITAS ====================
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      
+      document.getElementById('currentTime').textContent = timeStr;
+      document.getElementById('currentDate').textContent = dateStr;
+    }
+  </script>
+</body>
+</html>
