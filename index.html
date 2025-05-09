@@ -492,50 +492,75 @@
             setupEventListeners();
         });
         
-        // Initialize the application
-        async function initApp() {
-            try {
-                // Fetch initial data (school info, etc.)
-                const response = await fetchData('init');
-                
-                if (response && response.success) {
-                    // Set app config
-                    if (response.config) {
-                        appConfig = {
-                            title: response.config.title || 'KAS UMUM',
-                            description: response.config.description || 'Sistem Pencatatan Keuangan Sekolah',
-                            logoUrl: response.config.logoUrl || ''
-                        };
-                    }
-                    
-                    // Update document title
-                    document.title = appConfig.title;
-                    
-                    // Set app title and description
-                    document.getElementById('appTitle').textContent = appConfig.title;
-                    document.getElementById('headerTitle').textContent = appConfig.title;
-                    document.getElementById('appDescription').textContent = appConfig.description;
-                    
-                    // Set school logo
-                    updateLogo();
-                    
-                    // Check if user is already logged in (from session storage)
-                    const savedUser = sessionStorage.getItem('kasUmumUser');
-                    if (savedUser) {
-                        currentUser = JSON.parse(savedUser);
-                        showDashboard();
-                    } else {
-                        showLoginScreen();
-                    }
-                } else {
-                    showError("Gagal memuat data awal. Silakan muat ulang halaman.");
-                }
-            } catch (error) {
-                console.error("Error initializing app:", error);
-                showError("Terjadi kesalahan saat memuat aplikasi. Silakan coba lagi.");
-            }
-        }
-        
+async function initApp() {
+  try {
+    showLoading(true);
+    
+    // Fetch initial data
+    const response = await fetchWithRetry('init', 3);
+    
+    if (!response) {
+      throw new Error('Tidak mendapat respon dari server');
+    }
+    
+    if (response.success) {
+      // Set app config
+      appConfig = {
+        title: response.config?.title || 'KAS UMUM',
+        description: response.config?.description || 'Sistem Pencatatan Keuangan Sekolah',
+        logoUrl: response.config?.logoUrl || ''
+      };
+      
+      // Update UI
+      document.title = appConfig.title;
+      document.getElementById('appTitle').textContent = appConfig.title;
+      document.getElementById('headerTitle').textContent = appConfig.title;
+      document.getElementById('appDescription').textContent = appConfig.description;
+      
+      updateLogo();
+      
+      // Check session
+      const savedUser = sessionStorage.getItem('kasUmumUser');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showDashboard();
+      } else {
+        showLoginScreen();
+      }
+    } else {
+      showError(response.message || "Gagal memuat data awal");
+      showLoginScreen();
+    }
+  } catch (error) {
+    console.error("Init error:", error);
+    showError("Terjadi kesalahan saat memulai aplikasi");
+    showLoginScreen();
+  } finally {
+    showLoading(false);
+  }
+}
+
+// Helper function untuk retry fetch
+async function fetchWithRetry(action, retries) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetchData(action);
+      if (response) return response;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  return null;
+}
+
+function showLoading(show) {
+  if (show) {
+    loadingOverlay.classList.remove('hidden');
+  } else {
+    loadingOverlay.classList.add('hidden');
+  }
+}        
         // Update logo in all places
         function updateLogo() {
             const logoContainers = [
@@ -613,11 +638,10 @@
             
             // Filter dropdowns
             setupFilterDropdowns();
-            
-            // Menghubungkan tombol upload dengan input file
-            document.querySelector('.file-input-button').addEventListener('click', function() {
-                document.getElementById('transactionImage').click();
-            });
+                        // Menghubungkan tombol upload dengan input file
+document.querySelector('.file-input-button').addEventListener('click', function() {
+    document.getElementById('transactionImage').click();
+});
             
             // Edit and delete buttons (delegated events)
             document.addEventListener('click', function(e) {
@@ -638,32 +662,37 @@
             });
         }
         
-        // Handle image upload
-        function handleImageUpload(e) {
-            const file = e.target.files[0];
-            const fileName = document.getElementById('fileName');
-            const imagePreview = document.getElementById('imagePreview');
-            
-            if (file) {
-                fileName.textContent = file.name;
-                
-                // Show preview if it's an image
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        imagePreview.src = event.target.result;
-                        imagePreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    imagePreview.style.display = 'none';
-                }
-            } else {
-                fileName.textContent = 'Tidak ada file dipilih';
-                imagePreview.style.display = 'none';
-            }
+// Ganti handleImageUpload dengan ini:
+function handleImageUpload(e) {
+    const file = e.target.files[0];
+    const fileName = document.getElementById('fileName');
+    const imagePreview = document.getElementById('imagePreview');
+    
+    if (file) {
+        // Validasi tipe file
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+            alert('Hanya file gambar (JPEG, PNG, JPG) yang diizinkan');
+            e.target.value = ''; // Reset input file
+            fileName.textContent = 'Tidak ada file dipilih';
+            imagePreview.style.display = 'none';
+            return;
         }
         
+        fileName.textContent = file.name;
+        
+        // Tampilkan preview gambar
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            imagePreview.src = event.target.result;
+            imagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        fileName.textContent = 'Tidak ada file dipilih';
+        imagePreview.style.display = 'none';
+    }
+}
         // Show image modal
         function showImageModal(imageUrl) {
             if (!imageUrl) return;
@@ -1213,75 +1242,67 @@
             }
         }
         
-        // Handle transaction submit (FIXED UPLOAD ISSUE)
-        async function handleTransactionSubmit(e) {
-            e.preventDefault();
-            
-            const transactionId = document.getElementById('transactionId').value;
-            const date = document.getElementById('transactionDate').value;
-            const description = document.getElementById('transactionDescription').value.trim();
-            const amount = document.getElementById('transactionAmount').value;
-            const notes = document.getElementById('transactionNotes').value.trim();
-            const imageFile = document.getElementById('transactionImage').files[0];
-            const existingImage = document.getElementById('existingImage').value;
-            
-            if (!date || !description || !amount || amount <= 0) {
-                alert('Mohon lengkapi semua field dengan benar');
-                return;
-            }
-            
-            try {
-                loadingOverlay.classList.remove('hidden');
-                hideTransactionModal();
-                // Kirim preflight request terlebih dahulu
-				await fetch(`${API_URL}?action=preflight`, {
-				method: 'OPTIONS',
-				mode: 'cors'
-    });
-                // Create form data
-                const formData = new FormData();
-                formData.append('action', transactionId ? 'updateTransaction' : 'addTransaction');
-                formData.append('date', date);
-                formData.append('description', description);
-                formData.append('type', currentTransactionType);
-                formData.append('amount', amount);
-                formData.append('notes', notes);
-                formData.append('username', currentUser.username);
-                
-                const response = await fetch(API_URL, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      credentials: 'omit',
-      mode: 'cors'
-    });
+async function handleTransactionSubmit(e) {
+    e.preventDefault();
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const transactionId = document.getElementById('transactionId').value;
+    const date = document.getElementById('transactionDate').value;
+    const description = document.getElementById('transactionDescription').value.trim();
+    const amount = document.getElementById('transactionAmount').value;
+    const notes = document.getElementById('transactionNotes').value.trim();
+    const imageFile = document.getElementById('transactionImage').files[0];
+    const existingImage = document.getElementById('existingImage').value;
+    
+    if (!date || !description || !amount || amount <= 0) {
+        alert('Mohon lengkapi semua field dengan benar');
+        return;
     }
     
-    const data = await response.json();
-    handleTransactionResponse(data, transactionId);
-  } catch (error) {
-    console.error("Transaction error:", error);
-    showNotification("Terjadi kesalahan saat memproses transaksi", false);
-  } finally {
-    loadingOverlay.classList.add('hidden');
-  }
-}
-        // Handle transaction response
-        function handleTransactionResponse(data, transactionId) {
-            if (data.success) {
-                showNotification(transactionId ? 'Transaksi berhasil diperbarui!' : 'Transaksi berhasil disimpan!', true);
-                showDashboard(); // Refresh data
-            } else {
-                showNotification(data.message || (transactionId ? "Gagal memperbarui transaksi" : "Gagal menyimpan transaksi"), false);
-            }
+    try {
+        loadingOverlay.classList.remove('hidden');
+        hideTransactionModal();
+        
+        const formData = new FormData();
+        formData.append('action', transactionId ? 'updateTransaction' : 'addTransaction');
+        formData.append('date', date);
+        formData.append('description', description);
+        formData.append('type', currentTransactionType);
+        formData.append('amount', amount);
+        formData.append('notes', notes);
+        formData.append('username', currentUser.username);
+        
+        if (transactionId) {
+            formData.append('transactionId', transactionId);
         }
         
-        // Show recap modal
+        // Handle image upload
+        if (imageFile) {
+            formData.append('image', imageFile);
+        } else if (existingImage) {
+            formData.append('existingImage', existingImage);
+        }
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(transactionId ? 'Transaksi berhasil diperbarui!' : 'Transaksi berhasil disimpan!', true);
+            showDashboard(); // Refresh data
+        } else {
+            showNotification(data.message || (transactionId ? "Gagal memperbarui transaksi" : "Gagal menyimpan transaksi"), false);
+        }
+    } catch (error) {
+        console.error("Transaction error:", error);
+        showNotification("Terjadi kesalahan saat memproses transaksi", false);
+    } finally {
+        loadingOverlay.classList.add('hidden');
+        document.getElementById('transactionId').value = ''; // Clear transaction ID
+    }
+}        // Show recap modal
         function showRecapModal() {
             // Reset filters
             resetFilters();
@@ -1408,36 +1429,20 @@
             });
         }
         
-        // Fetch data from API
-        async function fetchData(action, additionalParams = {}) {
+async function fetchData(action, params = {}) {
   try {
-    // Kirim preflight request terlebih dahulu
-    await fetch(`${API_URL}?action=preflight`, {
-      method: 'OPTIONS',
-      mode: 'cors'
-    });
-    
-    const params = new URLSearchParams();
-    params.append('action', action);
-    
-    if (currentUser) {
-      params.append('username', currentUser.username);
-      params.append('role', currentUser.role);
-    }
+    const formData = new FormData();
+    formData.append('action', action);
     
     // Tambahkan parameter tambahan jika ada
-    for (const [key, value] of Object.entries(additionalParams)) {
-      params.append(key, value);
+    for (const key in params) {
+      formData.append(key, params[key]);
     }
     
     const response = await fetch(API_URL, {
       method: 'POST',
-      body: params,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      credentials: 'omit',
+      body: formData,
+      // Tambahkan mode 'cors' untuk development
       mode: 'cors'
     });
     
@@ -1450,9 +1455,7 @@
     console.error(`Error fetching ${action} data:`, error);
     throw error;
   }
-}
-        
-        // Show error message
+}        // Show error message
         function showError(message) {
             showNotification(message, false);
         }
