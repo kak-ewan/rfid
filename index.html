@@ -133,6 +133,18 @@
         .file-input-button:hover {
             background-color: #e5e7eb;
         }
+        .transaction-type-income {
+            color: #10b981;
+        }
+        .transaction-type-expense {
+            color: #ef4444;
+        }
+        .balance-positive {
+            color: #10b981;
+        }
+        .balance-negative {
+            color: #ef4444;
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -157,16 +169,18 @@
         </div>
 
         <!-- Login Screen -->
-        <div id="loginScreen" class="hidden min-h-screen flex flex-col items-center justify-center p-4">
+        <div id="loginScreen" class="min-h-screen flex flex-col items-center justify-center p-4">
             <div class="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden fade-in">
                 <div class="p-6 text-center">
                     <div id="schoolLogo" class="mx-auto mb-4 w-24 h-24 logo-container">
-                        <!-- Logo will be inserted here -->
+                        <svg class="w-16 h-16 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 14l9-5-9-5-9 5 9 5z"/>
+                            <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14z"/>
+                            <path d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/>
+                        </svg>
                     </div>
                     <h1 id="appTitle" class="text-2xl font-bold text-gray-800 mb-2">KAS UMUM</h1>
-                    <p id="appDescription" class="text-gray-600 mb-6">
-                        <!-- Description will be inserted here -->
-                    </p>
+                    <p id="appDescription" class="text-gray-600 mb-6">Sistem Pencatatan Keuangan Sekolah</p>
                     <div class="mb-4">
                         <label for="username" class="block text-gray-700 text-sm font-bold mb-2 text-left">Username</label>
                         <input type="text" id="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Masukkan username">
@@ -190,7 +204,11 @@
                 <div class="container mx-auto px-4 py-3 flex justify-between items-center">
                     <div class="flex items-center">
                         <div id="headerLogo" class="mr-3 w-10 h-10 logo-container">
-                            <!-- Logo will be inserted here -->
+                            <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 14l9-5-9-5-9 5 9 5z"/>
+                                <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14z"/>
+                                <path d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998a12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/>
+                            </svg>
                         </div>
                         <h1 id="headerTitle" class="text-xl font-bold">KAS UMUM</h1>
                     </div>
@@ -208,7 +226,7 @@
                 <!-- Balance Card -->
                 <div class="bg-white rounded-lg shadow-md p-6 mb-6 text-center slide-in">
                     <h2 class="text-gray-600 text-lg mb-1">Saldo Saat Ini</h2>
-                    <div id="currentBalance" class="text-4xl md:text-5xl font-bold text-blue-600 mb-2">Rp 0</div>
+                    <div id="currentBalance" class="text-4xl md:text-5xl font-bold balance-positive">Rp 0</div>
                     <p class="text-gray-500 text-sm">Terakhir diperbarui: <span id="lastUpdated">-</span></p>
                 </div>
 
@@ -258,19 +276,19 @@
                             <label class="block text-gray-700 text-sm font-bold mb-2" for="transactionDate">
                                 Tanggal
                             </label>
-                            <input type="date" id="transactionDate" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <input type="date" id="transactionDate" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
                         </div>
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2" for="transactionDescription">
                                 Uraian
                             </label>
-                            <input type="text" id="transactionDescription" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Masukkan uraian transaksi">
+                            <input type="text" id="transactionDescription" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Masukkan uraian transaksi" required>
                         </div>
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2" for="transactionAmount">
                                 Jumlah (Rp)
                             </label>
-                            <input type="number" id="transactionAmount" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="0">
+                            <input type="number" id="transactionAmount" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="0" min="1" step="1" required>
                         </div>
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2" for="transactionImage">
@@ -456,8 +474,9 @@
     </div>
 
     <script>
-        // API Endpoint
-        const API_URL = 'https://script.google.com/macros/s/AKfycby3-l74bXr5dksCS0jmazjK1R8EP1yMd5o7jYbhloEE8UbXoS5_o4uBkjekmGZFf-sK/exec';
+        // API Endpoint via Cloudflare Worker
+        const CLOUDFLARE_WORKER_URL = 'https://silent-art-c930.irwantaufiqurrahman59.workers.dev/';
+        const API_URL = CLOUDFLARE_WORKER_URL;
         
         // Global variables
         let currentUser = null;
@@ -492,75 +511,50 @@
             setupEventListeners();
         });
         
-async function initApp() {
-  try {
-    showLoading(true);
-    
-    // Fetch initial data
-    const response = await fetchWithRetry('init', 3);
-    
-    if (!response) {
-      throw new Error('Tidak mendapat respon dari server');
-    }
-    
-    if (response.success) {
-      // Set app config
-      appConfig = {
-        title: response.config?.title || 'KAS UMUM',
-        description: response.config?.description || 'Sistem Pencatatan Keuangan Sekolah',
-        logoUrl: response.config?.logoUrl || ''
-      };
-      
-      // Update UI
-      document.title = appConfig.title;
-      document.getElementById('appTitle').textContent = appConfig.title;
-      document.getElementById('headerTitle').textContent = appConfig.title;
-      document.getElementById('appDescription').textContent = appConfig.description;
-      
-      updateLogo();
-      
-      // Check session
-      const savedUser = sessionStorage.getItem('kasUmumUser');
-      if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        showDashboard();
-      } else {
-        showLoginScreen();
-      }
-    } else {
-      showError(response.message || "Gagal memuat data awal");
-      showLoginScreen();
-    }
-  } catch (error) {
-    console.error("Init error:", error);
-    showError("Terjadi kesalahan saat memulai aplikasi");
-    showLoginScreen();
-  } finally {
-    showLoading(false);
-  }
-}
-
-// Helper function untuk retry fetch
-async function fetchWithRetry(action, retries) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const response = await fetchData(action);
-      if (response) return response;
-    } catch (error) {
-      if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
-  return null;
-}
-
-function showLoading(show) {
-  if (show) {
-    loadingOverlay.classList.remove('hidden');
-  } else {
-    loadingOverlay.classList.add('hidden');
-  }
-}        
+        // Initialize the application
+        async function initApp() {
+            try {
+                // Fetch initial data (school info, etc.)
+                const response = await fetchData('init');
+                
+                if (response && response.success) {
+                    // Set app config
+                    if (response.config) {
+                        appConfig = {
+                            title: response.config.title || 'KAS UMUM',
+                            description: response.config.description || 'Sistem Pencatatan Keuangan Sekolah',
+                            logoUrl: response.config.logoUrl || ''
+                        };
+                    }
+                    
+                    // Update document title
+                    document.title = appConfig.title;
+                    
+                    // Set app title and description
+                    document.getElementById('appTitle').textContent = appConfig.title;
+                    document.getElementById('headerTitle').textContent = appConfig.title;
+                    document.getElementById('appDescription').textContent = appConfig.description;
+                    
+                    // Set school logo
+                    updateLogo();
+                    
+                    // Check if user is already logged in (from session storage)
+                    const savedUser = sessionStorage.getItem('kasUmumUser');
+                    if (savedUser) {
+                        currentUser = JSON.parse(savedUser);
+                        showDashboard();
+                    } else {
+                        showLoginScreen();
+                    }
+                } else {
+                    showError("Gagal memuat data awal. Silakan muat ulang halaman.");
+                }
+            } catch (error) {
+                console.error("Error initializing app:", error);
+                showError("Terjadi kesalahan saat memuat aplikasi. Silakan coba lagi.");
+            }
+        }
+        
         // Update logo in all places
         function updateLogo() {
             const logoContainers = [
@@ -638,10 +632,6 @@ function showLoading(show) {
             
             // Filter dropdowns
             setupFilterDropdowns();
-                        // Menghubungkan tombol upload dengan input file
-document.querySelector('.file-input-button').addEventListener('click', function() {
-    document.getElementById('transactionImage').click();
-});
             
             // Edit and delete buttons (delegated events)
             document.addEventListener('click', function(e) {
@@ -662,43 +652,38 @@ document.querySelector('.file-input-button').addEventListener('click', function(
             });
         }
         
-// Ganti handleImageUpload dengan ini:
-function handleImageUpload(e) {
-    const file = e.target.files[0];
-    const fileName = document.getElementById('fileName');
-    const imagePreview = document.getElementById('imagePreview');
-    
-    if (file) {
-        // Validasi tipe file
-        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-        if (!validTypes.includes(file.type)) {
-            alert('Hanya file gambar (JPEG, PNG, JPG) yang diizinkan');
-            e.target.value = ''; // Reset input file
-            fileName.textContent = 'Tidak ada file dipilih';
-            imagePreview.style.display = 'none';
-            return;
+        // Handle image upload
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            const fileName = document.getElementById('fileName');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            if (file) {
+                fileName.textContent = file.name;
+                
+                // Show preview if it's an image
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        imagePreview.src = event.target.result;
+                        imagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.style.display = 'none';
+                }
+            } else {
+                fileName.textContent = 'Tidak ada file dipilih';
+                imagePreview.style.display = 'none';
+            }
         }
         
-        fileName.textContent = file.name;
-        
-        // Tampilkan preview gambar
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            imagePreview.src = event.target.result;
-            imagePreview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    } else {
-        fileName.textContent = 'Tidak ada file dipilih';
-        imagePreview.style.display = 'none';
-    }
-}
         // Show image modal
         function showImageModal(imageUrl) {
             if (!imageUrl) return;
             
             const modalImage = document.getElementById('modalImagePreview');
-            modalImage.src = imageUrl;
+            modalImage.src = `${API_URL}?image=${imageUrl}`;
             imageModal.classList.remove('hidden');
         }
         
@@ -1005,7 +990,20 @@ function handleImageUpload(e) {
                 
                 if (response && response.success) {
                     // Update balance
-                    document.getElementById('currentBalance').textContent = formatCurrency(response.balance || 0);
+                    const balanceElement = document.getElementById('currentBalance');
+                    balanceElement.textContent = formatCurrency(response.balance || 0);
+                    
+                    // Update balance color based on value
+                    if (response.balance > 0) {
+                        balanceElement.classList.add('balance-positive');
+                        balanceElement.classList.remove('balance-negative');
+                    } else if (response.balance < 0) {
+                        balanceElement.classList.add('balance-negative');
+                        balanceElement.classList.remove('balance-positive');
+                    } else {
+                        balanceElement.classList.remove('balance-positive', 'balance-negative');
+                    }
+                    
                     document.getElementById('lastUpdated').textContent = response.lastUpdated || '-';
                     
                     // Update recent transactions
@@ -1047,22 +1045,15 @@ function handleImageUpload(e) {
                 loadingOverlay.classList.remove('hidden');
                 loginError.classList.add('hidden');
                 
-                const formData = new FormData();
-                formData.append('action', 'login');
-                formData.append('username', username);
-                formData.append('password', password);
-                
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: formData
+                const response = await fetchData('login', {
+                    username: username,
+                    password: password
                 });
                 
-                const data = await response.json();
-                
-                if (data.success) {
+                if (response && response.success) {
                     currentUser = {
                         username: username,
-                        role: data.role
+                        role: response.role
                     };
                     
                     // Save to session storage
@@ -1071,7 +1062,7 @@ function handleImageUpload(e) {
                     // Show dashboard
                     showDashboard();
                 } else {
-                    loginError.textContent = data.message || "Username atau password salah";
+                    loginError.textContent = response?.message || "Username atau password salah";
                     loginError.classList.remove('hidden');
                 }
             } catch (error) {
@@ -1189,7 +1180,7 @@ function handleImageUpload(e) {
                 
                 if (transaction.imageUrl) {
                     fileName.textContent = 'Gambar sudah diupload';
-                    imagePreview.src = transaction.imageUrl;
+                    imagePreview.src = `${API_URL}?image=${transaction.imageUrl}`;
                     imagePreview.style.display = 'block';
                     existingImage.value = transaction.imageUrl;
                 } else {
@@ -1217,22 +1208,15 @@ function handleImageUpload(e) {
             try {
                 loadingOverlay.classList.remove('hidden');
                 
-                const formData = new FormData();
-                formData.append('action', 'deleteTransaction');
-                formData.append('transactionId', transactionId);
-                
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: formData
+                const response = await fetchData('deleteTransaction', {
+                    transactionId: transactionId
                 });
                 
-                const data = await response.json();
-                
-                if (data.success) {
+                if (response && response.success) {
                     showNotification('Transaksi berhasil dihapus!', true);
                     showDashboard(); // Refresh data
                 } else {
-                    showNotification(data.message || "Gagal menghapus transaksi", false);
+                    showNotification(response?.message || "Gagal menghapus transaksi", false);
                 }
             } catch (error) {
                 console.error("Delete error:", error);
@@ -1242,67 +1226,85 @@ function handleImageUpload(e) {
             }
         }
         
-async function handleTransactionSubmit(e) {
-    e.preventDefault();
-    
-    const transactionId = document.getElementById('transactionId').value;
-    const date = document.getElementById('transactionDate').value;
-    const description = document.getElementById('transactionDescription').value.trim();
-    const amount = document.getElementById('transactionAmount').value;
-    const notes = document.getElementById('transactionNotes').value.trim();
-    const imageFile = document.getElementById('transactionImage').files[0];
-    const existingImage = document.getElementById('existingImage').value;
-    
-    if (!date || !description || !amount || amount <= 0) {
-        alert('Mohon lengkapi semua field dengan benar');
-        return;
-    }
-    
-    try {
-        loadingOverlay.classList.remove('hidden');
-        hideTransactionModal();
-        
-        const formData = new FormData();
-        formData.append('action', transactionId ? 'updateTransaction' : 'addTransaction');
-        formData.append('date', date);
-        formData.append('description', description);
-        formData.append('type', currentTransactionType);
-        formData.append('amount', amount);
-        formData.append('notes', notes);
-        formData.append('username', currentUser.username);
-        
-        if (transactionId) {
-            formData.append('transactionId', transactionId);
+        // Handle transaction submit
+        async function handleTransactionSubmit(e) {
+            e.preventDefault();
+            
+            const transactionId = document.getElementById('transactionId').value;
+            const date = document.getElementById('transactionDate').value;
+            const description = document.getElementById('transactionDescription').value.trim();
+            const amount = document.getElementById('transactionAmount').value;
+            const notes = document.getElementById('transactionNotes').value.trim();
+            const imageFile = document.getElementById('transactionImage').files[0];
+            const existingImage = document.getElementById('existingImage').value;
+            
+            if (!date || !description || !amount || amount <= 0) {
+                alert('Mohon lengkapi semua field dengan benar');
+                return;
+            }
+            
+            try {
+                loadingOverlay.classList.remove('hidden');
+                hideTransactionModal();
+                
+                const formData = {
+                    date: date,
+                    description: description,
+                    type: currentTransactionType,
+                    amount: amount,
+                    notes: notes,
+                    existingImage: existingImage,
+                    username: currentUser.username
+                };
+                
+                // Handle image upload
+                if (imageFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const base64String = event.target.result.split(',')[1];
+                        formData.image = base64String;
+                        
+                        // Continue with submission
+                        submitTransactionData(transactionId, formData);
+                    };
+                    reader.readAsDataURL(imageFile);
+                } else {
+                    // Submit without image
+                    submitTransactionData(transactionId, formData);
+                }
+            } catch (error) {
+                console.error("Transaction error:", error);
+                showNotification("Terjadi kesalahan saat memproses transaksi", false);
+                loadingOverlay.classList.add('hidden');
+            }
         }
         
-        // Handle image upload
-        if (imageFile) {
-            formData.append('image', imageFile);
-        } else if (existingImage) {
-            formData.append('existingImage', existingImage);
+        // Submit transaction data to API
+        async function submitTransactionData(transactionId, formData) {
+            try {
+                const action = transactionId ? 'updateTransaction' : 'addTransaction';
+                if (transactionId) {
+                    formData.transactionId = transactionId;
+                }
+                
+                const response = await fetchData(action, formData);
+                
+                if (response && response.success) {
+                    showNotification(transactionId ? 'Transaksi berhasil diperbarui!' : 'Transaksi berhasil disimpan!', true);
+                    showDashboard(); // Refresh data
+                } else {
+                    showNotification(response?.message || (transactionId ? "Gagal memperbarui transaksi" : "Gagal menyimpan transaksi"), false);
+                }
+            } catch (error) {
+                console.error("Submit error:", error);
+                showNotification("Terjadi kesalahan saat memproses transaksi", false);
+            } finally {
+                loadingOverlay.classList.add('hidden');
+                document.getElementById('transactionId').value = ''; // Clear transaction ID
+            }
         }
         
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showNotification(transactionId ? 'Transaksi berhasil diperbarui!' : 'Transaksi berhasil disimpan!', true);
-            showDashboard(); // Refresh data
-        } else {
-            showNotification(data.message || (transactionId ? "Gagal memperbarui transaksi" : "Gagal menyimpan transaksi"), false);
-        }
-    } catch (error) {
-        console.error("Transaction error:", error);
-        showNotification("Terjadi kesalahan saat memproses transaksi", false);
-    } finally {
-        loadingOverlay.classList.add('hidden');
-        document.getElementById('transactionId').value = ''; // Clear transaction ID
-    }
-}        // Show recap modal
+        // Show recap modal
         function showRecapModal() {
             // Reset filters
             resetFilters();
@@ -1429,33 +1431,30 @@ async function handleTransactionSubmit(e) {
             });
         }
         
-async function fetchData(action, params = {}) {
-  try {
-    const formData = new FormData();
-    formData.append('action', action);
-    
-    // Tambahkan parameter tambahan jika ada
-    for (const key in params) {
-      formData.append(key, params[key]);
-    }
-    
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: formData,
-      // Tambahkan mode 'cors' untuk development
-      mode: 'cors'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error(`Error fetching ${action} data:`, error);
-    throw error;
-  }
-}        // Show error message
+        // Fetch data from API via Cloudflare Worker
+        async function fetchData(action, data = {}) {
+            try {
+                const payload = {
+                    action: action,
+                    ...data
+                };
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching ${action} data:`, error);
+                throw error;
+            }
+        }
+        
+        // Show error message
         function showError(message) {
             showNotification(message, false);
         }
